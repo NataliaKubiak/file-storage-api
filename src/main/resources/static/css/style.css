@@ -1,0 +1,163 @@
+.login-container,
+.registration-container {
+    max-width: 500px;
+    position: relative;
+}
+
+.no-margin-bottom {
+    margin-bottom: 0;
+}
+
+.error-wrapper {
+    max-width: 600px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.custom-breadcrumb {
+    color: #6c7175;
+}
+
+.custom-breadcrumb a {
+    color: #4b4d50;
+    text-decoration: none;
+}
+
+.custom-breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.dropdown-item {
+    color: #333;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus,
+.dropdown-item:active {
+    background-color: #e9ecef !important;
+    color: #333 !important;
+}
+
+.dropdown-item i {
+    color: #6c757d;
+}
+
+.no-vertical-borders td,
+.no-vertical-borders th {
+    border-left: none !important;
+    border-right: none !important;
+}
+
+.no-vertical-borders th:first-child,
+.no-vertical-borders td:first-child {
+    border-left: 1px solid #dee2e6;
+}
+
+.no-vertical-borders th:last-child,
+.no-vertical-borders td:last-child {
+    border-right: 1px solid #dee2e6;
+}
+
+.no-vertical-borders tbody td {
+    border-bottom: 1px solid #dee2e6;
+}
+
+table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.folder-link {
+    color: inherit;
+    text-decoration: none;
+    font-weight: inherit;
+}
+
+.folder-link:hover {
+    text-decoration: underline;
+    color: inherit;
+}
+
+.icon-button {
+    padding: 0;
+    margin-right: 8px;
+    border: none;
+    background: none;
+}
+
+.text-soft-edit {
+    color: #6c757d;
+}
+
+.text-soft-edit:hover {
+    color: #495057;
+}
+
+.text-soft-download {
+    color: #6c757d;
+}
+
+.text-soft-download:hover {
+    color: #495057;
+}
+
+.text-soft-danger {
+    color: #6c757d;
+}
+
+.text-soft-danger:hover {
+    color: #ff4c4c;
+}
+
+.text-soft-goto {
+    color: #6c757d;
+}
+
+.text-soft-goto:hover {
+    color: #495057;
+}
+
+.rounded-table-container {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #dee2e6;
+}
+
+@media (max-width: 576px) {
+    th.actions-col {
+        width: 30%;
+    }
+}
+
+.preserve-whitespace {
+    white-space: pre-line;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.slide-in {
+    animation: slideIn 0.5s ease-out;
+}
+
+.slide-out {
+    animation: slideOut 0.5s ease-out;
+}
