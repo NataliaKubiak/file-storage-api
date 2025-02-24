@@ -26,15 +26,9 @@ public class SecurityConfig {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/sign-up").permitAll()
+                        .requestMatchers("/auth/sign-up", "/auth/sign-in").permitAll()
                         .anyRequest().authenticated()
                 )
-//                .formLogin(login -> login
-//                        .loginPage("/auth/sign-up") //устанавливаем нашу логин-форму
-//                        //куда отправляется запрос после заполнения логин-формы (там спринг сам обрабатывает и не надо писать контроллер с логикой обработки)
-//                        .defaultSuccessUrl("/home", true) //если успех - перенаправить на эту страницу
-//                        .failureUrl("/auth/signin?error")
-//                )
                 .logout(logout -> logout
                         .disable()
                 )
