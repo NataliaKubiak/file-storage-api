@@ -1,5 +1,7 @@
 package org.example.filestorageapi.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.filestorageapi.dto.UserAuthDto;
@@ -11,6 +13,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -28,6 +34,7 @@ public class AuthController {
     private final UserAuthDtoToUserMapper userMapper;
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
+    private final HttpSessionSecurityContextRepository securityContextRepository;
 
     /**
      * + 201 Created
@@ -61,18 +68,35 @@ public class AuthController {
      */
     @PostMapping("/sign-in")
     public ResponseEntity<UserResponseDto> performSignin(@RequestBody @Valid UserAuthDto userAuthDto,
-                                                         BindingResult bindingResult) {
+                                                         BindingResult bindingResult,
+                                                         HttpServletRequest request,
+                                                         HttpServletResponse response) {
 
         hasValidationErrors(bindingResult);
         String username = userAuthDto.getUsername();
 
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(username, userAuthDto.getPassword())
-        );
+        Authentication authenticationRequest =
+                new UsernamePasswordAuthenticationToken(username, userAuthDto.getPassword());
+
+        Authentication authenticationResponse = authenticationManager.authenticate(authenticationRequest);
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authenticationResponse);
+        SecurityContextHolder.setContext(context);
+
+        securityContextRepository.saveContext(context, request, response);
 
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(new UserResponseDto(username));
+    }
+
+    @PostMapping("/sign-out")
+    public ResponseEntity<Void> logout() {
+
+        SecurityContextHolder.clearContext();
+        // TODO: 24/02/2025 что нужно сделать перед выходом? сессии + Redis как-то использовать?
+
+        return ResponseEntity.noContent().build();
     }
 
     private void hasValidationErrors(BindingResult bindingResult) {
@@ -88,11 +112,4 @@ public class AuthController {
             throw new IllegalArgumentException(errorMsg.toString());
         }
     }
-
-    // TODO: 24/02/2025 это от старого с Thymeleaf
-//    @GetMapping("/logout")
-//    public String logout() {
-//        // Логика выхода
-//        return "redirect:/signin?signout=true";
-//    }
 }
