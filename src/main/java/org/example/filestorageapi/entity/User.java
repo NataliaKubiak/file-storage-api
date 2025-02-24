@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.example.filestorageapi.utils.Role;
+import org.example.filestorageapi.utils.Roles;
 
 @Data
 @AllArgsConstructor
@@ -27,5 +27,5 @@ public class User {
 
     @Column(name = "role", nullable = false)
     @Enumerated(EnumType.STRING)
-    private Role role;
+    private Roles roles;
 }

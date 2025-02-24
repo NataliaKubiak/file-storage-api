@@ -12,6 +12,20 @@ public class GlobalExceptionHandler {
             IllegalArgumentException.class
     })
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(Exception ex) {
-        return new ResponseEntity<>(new ErrorResponse(ex.getMessage()), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new ErrorResponse(ex.getMessage()), HttpStatus.BAD_REQUEST); //400
+    }
+
+    @ExceptionHandler({
+            UserAlreadyExistException.class
+    })
+    public ResponseEntity<ErrorResponse> handleUserAlreadyExistException(Exception ex) {
+        return new ResponseEntity<>(new ErrorResponse(ex.getMessage()), HttpStatus.CONFLICT); //409
+    }
+
+    @ExceptionHandler({
+            Exception.class
+    })
+    public ResponseEntity<ErrorResponse> handleUnexpectedException(Exception ex) {
+        return new ResponseEntity<>(new ErrorResponse(ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR); //500
     }
 }

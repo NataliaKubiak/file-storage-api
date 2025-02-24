@@ -3,7 +3,7 @@ package org.example.filestorageapi.service;
 import lombok.RequiredArgsConstructor;
 import org.example.filestorageapi.entity.User;
 import org.example.filestorageapi.repository.UserRepository;
-import org.example.filestorageapi.utils.Role;
+import org.example.filestorageapi.utils.Roles;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +18,7 @@ public class RegistrationService {
     @Transactional
     public void register(User user) {
         user.setEncryptedPassword(passwordEncoder.encode(user.getEncryptedPassword()));
-        user.setRole(Role.USER);
+        user.setRoles(Roles.ROLE_USER);
 
         userRepository.save(user);
     }

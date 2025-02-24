@@ -4,8 +4,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.filestorageapi.dto.UserAuthDto;
 import org.example.filestorageapi.dto.UserResponseDto;
+import org.example.filestorageapi.errors.UserAlreadyExistException;
 import org.example.filestorageapi.mapper.UserAuthDtoToUserMapper;
 import org.example.filestorageapi.service.RegistrationService;
+import org.example.filestorageapi.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -23,18 +25,18 @@ import java.util.List;
 public class AuthController {
 
     private final UserAuthDtoToUserMapper userMapper;
+    private final UserService userService;
     private final RegistrationService registrationService;
 
     /**
      * + 201 Created
      * + 400 - ошибки валидации (пример - слишком короткий username)
-     * 409 - username занят
-     * 500 - неизвестная ошибка
+     * + 409 - username занят
+     * + 500 - неизвестная ошибка
      */
     @PostMapping("/sign-up")
     public ResponseEntity<UserResponseDto> performSignup(@RequestBody @Valid UserAuthDto userAuthDto,
                                                          BindingResult bindingResult) {
-
         if (bindingResult.hasErrors()) {
             StringBuilder errorMsg = new StringBuilder();
 
@@ -47,11 +49,16 @@ public class AuthController {
             throw new IllegalArgumentException(errorMsg.toString());
         }
 
-        registrationService.register(userMapper.toEntity(userAuthDto));
+        String username = userAuthDto.getUsername();
 
+        if (userService.findUserByUsername(username).isPresent()) {
+            throw new UserAlreadyExistException("User with name '" + username + "' already exists");
+        }
+
+        registrationService.register(userMapper.toEntity(userAuthDto));
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(new UserResponseDto(userAuthDto.getUsername()));
+                .body(new UserResponseDto(username));
     }
 
     // TODO: 24/02/2025 это от старого с Thymeleaf
