@@ -17,11 +17,6 @@ spring:
   flyway:
     enabled: false
 
-  thymeleaf:
-    prefix: classpath:/templates/
-    suffix: .html
-    mode: HTML
-
 logging:
   level:
     org.springframework.security: DEBUG
