@@ -1,5 +1,6 @@
 package org.example.filestorageapi.errors;
 
+import jakarta.validation.ValidationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
@@ -11,22 +12,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler({
-            IllegalArgumentException.class
+            ValidationException.class
     })
-    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(Exception ex) {
+    public ResponseEntity<ErrorResponse> handleValidationException(Exception ex) {
         return new ResponseEntity<>(new ErrorResponse(ex.getMessage()), HttpStatus.BAD_REQUEST); //400
     }
 
-    @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleUsernameNotFoundException(Exception ex) {
-        return new ResponseEntity<>(new ErrorResponse(ex.getMessage()), HttpStatus.UNAUTHORIZED); //401
-    }
-
     @ExceptionHandler({
+            UsernameNotFoundException.class,
             AuthenticationException.class
     })
-    public ResponseEntity<ErrorResponse> handleAuthenticationException() {
-        return new ResponseEntity<>(new ErrorResponse("Incorrect login or password"), HttpStatus.UNAUTHORIZED); //401
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(Exception ex) {
+        return new ResponseEntity<>(new ErrorResponse(ex.getMessage()), HttpStatus.UNAUTHORIZED); //401
     }
 
     @ExceptionHandler({
