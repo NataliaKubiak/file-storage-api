@@ -14,13 +14,13 @@ import org.example.filestorageapi.security.CustomUserDetailsService;
 import org.example.filestorageapi.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -38,10 +38,11 @@ import java.util.List;
 public class AuthController {
 
     private final CustomUserDetailsService userDetailsService;
-    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final SecurityContextRepository securityContextRepository;
+
     private final UserService userService;
     private final UserAuthDtoToUserMapper userMapper;
-    private final SecurityContextRepository securityContextRepository;
 
     /**
      * + 200 OK
@@ -55,20 +56,29 @@ public class AuthController {
                                                   HttpServletRequest request,
                                                   HttpServletResponse response) {
         hasValidationErrors(bindingResult);
-        String username = userAuthDto.getUsername();
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        try {
+            Authentication authRequest = new UsernamePasswordAuthenticationToken(
+                    userAuthDto.getUsername(),
+                    userAuthDto.getPassword()
+            );
+            Authentication authentication = authenticationManager.authenticate(authRequest);
 
-        if (passwordEncoder.matches(userAuthDto.getPassword(), userDetails.getPassword())) {
-
-            authenticateAndSaveContext(request, response, userDetails);
+            createAndSaveSecurityContext(request, response, authentication);
 
             return ResponseEntity
                     .status(HttpStatus.OK)
-                    .body(new UserResponseDto(username));
-        } else {
-            throw new BadCredentialsException("Incorrect password.");
+                    .body(new UserResponseDto(userAuthDto.getUsername()));
+        } catch (BadCredentialsException e) {
+            throw new BadCredentialsException("Invalid username or password.");
         }
+    }
+
+    @PostMapping("/test")
+    public ResponseEntity<String> test() {
+        // This endpoint is protected by Spring Security
+        // If we reach here, it means the user is authenticated
+        return ResponseEntity.ok("You are authenticated!");
     }
 
     /**
@@ -91,11 +101,13 @@ public class AuthController {
 
         userService.registerUser(userMapper.toEntity(userAuthDto));
 
-        // TODO: 25/02/2025 выставляется кука? прописывать ли вручную или то что отправляется автоматом - ок?
         try {
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-            authenticateAndSaveContext(request, response, userDetails);
+            Authentication authentication = new UsernamePasswordAuthenticationToken(
+                    userDetails, null, userDetails.getAuthorities());
+
+            createAndSaveSecurityContext(request, response, authentication);
 
         } catch (Exception e) {
             log.warn("Auto-login failed: {}", e.getMessage());
@@ -120,14 +132,12 @@ public class AuthController {
         }
     }
 
-    private void authenticateAndSaveContext(HttpServletRequest request, HttpServletResponse response, UserDetails userDetails) {
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-                userDetails, null, userDetails.getAuthorities());
-
+    private void createAndSaveSecurityContext(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(authentication);
 
+        securityContext.setAuthentication(authentication);
         SecurityContextHolder.setContext(securityContext);
+
         securityContextRepository.saveContext(securityContext, request, response);
     }
 }
