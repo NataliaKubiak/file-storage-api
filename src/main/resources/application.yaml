@@ -12,10 +12,12 @@ spring:
     properties.hibernate:
       show_sql: true
       format_sql: true
-      hbm2ddl.auto: create
-      dialect: org.hibernate.dialect.PostgreSQLDialect
+      hbm2ddl.auto: validate
+#      dialect: org.hibernate.dialect.PostgreSQLDialect
+
   flyway:
-    enabled: false
+    enabled: true
+    baseline-on-migrate: true
 
 logging:
   level:
