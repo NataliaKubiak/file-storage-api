@@ -68,6 +68,15 @@ public class SecurityConfig {
                 )
                 .securityContext(context -> context
                         .securityContextRepository(securityContextRepository())
+                )
+                .logout(logout -> logout
+                        .logoutUrl("/auth/sign-out")
+                        .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID")
+                        .clearAuthentication(true)
+                        .logoutSuccessHandler((request, response, authentication) -> {
+                            response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+                        })
                 );
 
         return http.build();
