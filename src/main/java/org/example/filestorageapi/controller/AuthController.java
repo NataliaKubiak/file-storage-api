@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.example.filestorageapi.dto.UserAuthDto;
 import org.example.filestorageapi.dto.UserResponseDto;
-import org.example.filestorageapi.errors.UserAlreadyExistException;
 import org.example.filestorageapi.mapper.UserAuthDtoToUserMapper;
 import org.example.filestorageapi.security.CustomUserDetailsService;
 import org.example.filestorageapi.service.UserService;
@@ -74,13 +73,6 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/test")
-    public ResponseEntity<String> test() {
-        // This endpoint is protected by Spring Security
-        // If we reach here, it means the user is authenticated
-        return ResponseEntity.ok("You are authenticated!");
-    }
-
     /**
      * + 201 Created
      * + 400 - ошибки валидации (пример - слишком короткий username)
@@ -93,16 +85,10 @@ public class AuthController {
                                                          HttpServletRequest request,
                                                          HttpServletResponse response) {
         hasValidationErrors(bindingResult);
-        String username = userAuthDto.getUsername();
-
-        if (userService.findUserByUsername(username).isPresent()) {
-            throw new UserAlreadyExistException("User with name '" + username + "' already exists.");
-        }
-
         userService.registerUser(userMapper.toEntity(userAuthDto));
 
         try {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(userAuthDto.getUsername());
 
             Authentication authentication = new UsernamePasswordAuthenticationToken(
                     userDetails, null, userDetails.getAuthorities());
@@ -115,7 +101,7 @@ public class AuthController {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(new UserResponseDto(username));
+                .body(new UserResponseDto(userAuthDto.getUsername()));
     }
 
     private void hasValidationErrors(BindingResult bindingResult) {
