@@ -51,7 +51,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/auth/sign-in", "/auth/sign-up").permitAll()
+                        .requestMatchers("/api/auth/sign-in", "/api/auth/sign-up").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form.disable())
@@ -70,7 +70,7 @@ public class SecurityConfig {
                         .securityContextRepository(securityContextRepository())
                 )
                 .logout(logout -> logout
-                        .logoutUrl("/auth/sign-out")
+                        .logoutUrl("/api/auth/sign-out")
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
                         .clearAuthentication(true)

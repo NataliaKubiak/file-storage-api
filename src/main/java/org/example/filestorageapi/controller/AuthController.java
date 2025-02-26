@@ -33,7 +33,7 @@ import java.util.List;
 
 @Log4j2
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
