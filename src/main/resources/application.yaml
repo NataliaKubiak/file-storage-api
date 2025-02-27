@@ -19,6 +19,12 @@ spring:
     enabled: true
     baseline-on-migrate: true
 
+minio:
+  endpoint: http://localhost:9000
+  accessKey: minioadmin
+  secretKey: minioadmin
+  bucketName: cloud
+
 logging:
   level:
     org.springframework.security: DEBUG
