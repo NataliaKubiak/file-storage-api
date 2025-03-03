@@ -23,7 +23,7 @@ minio:
   endpoint: http://localhost:9000
   accessKey: minioadmin
   secretKey: minioadmin
-  bucketName: cloud
+  bucketName: user-files
 
 logging:
   level:

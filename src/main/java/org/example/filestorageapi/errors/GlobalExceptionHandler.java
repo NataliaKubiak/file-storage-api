@@ -12,7 +12,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler({
-            ValidationException.class
+            ValidationException.class,
+            InvalidPathException.class
     })
     public ResponseEntity<ErrorResponse> handleValidationException(Exception ex) {
         return new ResponseEntity<>(new ErrorResponse(ex.getMessage()), HttpStatus.BAD_REQUEST); //400
@@ -24,6 +25,13 @@ public class GlobalExceptionHandler {
     })
     public ResponseEntity<ErrorResponse> handleAuthenticationException(Exception ex) {
         return new ResponseEntity<>(new ErrorResponse(ex.getMessage()), HttpStatus.UNAUTHORIZED); //401
+    }
+
+    @ExceptionHandler({
+            ResourceNotFoundException.class
+    })
+    public ResponseEntity<ErrorResponse> handleResourceNotExistException(Exception ex) {
+        return new ResponseEntity<>(new ErrorResponse(ex.getMessage()), HttpStatus.NOT_FOUND); //404
     }
 
     @ExceptionHandler({
