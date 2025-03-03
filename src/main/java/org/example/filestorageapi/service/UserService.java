@@ -17,9 +17,14 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MinioService minioService;
 
     public Optional<User> findUserByUsername(String username) {
         return userRepository.findByUsername(username);
+    }
+
+    public Integer getUserIdByUsername(String username) {
+        return userRepository.findByUsername(username).get().getId();
     }
 
     @Transactional
@@ -32,5 +37,6 @@ public class UserService {
         user.setRoles(Roles.ROLE_USER);
 
         userRepository.save(user);
+        minioService.createFolder("user-" + user.getId() + "-files");
     }
 }
