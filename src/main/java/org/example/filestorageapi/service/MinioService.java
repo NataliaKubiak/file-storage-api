@@ -5,7 +5,9 @@ import io.minio.errors.ErrorResponseException;
 import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.example.filestorageapi.dto.ResourceResponseDto;
 import org.example.filestorageapi.errors.ResourceNotFoundException;
+import org.example.filestorageapi.utils.ResourceType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -180,25 +182,62 @@ public class MinioService {
                             .build());
         } catch (Exception e) {
             log.error("Error creating folder: {}", e.getMessage());
-            throw new RuntimeException("Could not create folder", e);
+            throw new RuntimeException("Could not create folder");
         }
     }
 
-    // TODO: 03/03/2025 for testing
-    public String uploadFile(MultipartFile file, String objectName, String contentType) {
+    public ResourceResponseDto uploadFile(MultipartFile file, String urlPath, String contentType) {
+        if (!urlPath.endsWith("/")) {
+            urlPath = urlPath + "/";
+        }
+
+        String fixedFilename = file.getOriginalFilename().replace(":", "/");
+        String fullFilename = urlPath + fixedFilename;
+
+        String fileName = fixedFilename;
+        String filePath = urlPath;
+
+        if (fileName.contains("/")) {
+            fileName = fileName.substring(fileName.lastIndexOf("/") + 1);
+
+            String subdirs = fixedFilename.substring(0, fixedFilename.lastIndexOf("/"));
+            filePath = urlPath + subdirs;
+        }
+
         try {
             minioClient.putObject(
                     PutObjectArgs.builder()
                             .bucket(defaultBucketName)
-                            .object(objectName)
+                            .object(fullFilename)
                             .stream(file.getInputStream(), file.getSize(), -1)
                             .contentType(contentType)
                             .build());
 
-            return objectName;
+            return ResourceResponseDto.builder()
+                    .path(filePath.endsWith("/") ? filePath.substring(0, filePath.length() - 1) : filePath)
+                    .name(fileName)
+                    .size(file.getSize())
+                    .type(ResourceType.FILE)
+                    .build();
         } catch (Exception e) {
             log.error("Error uploading file: {}", e.getMessage());
-            throw new RuntimeException("Could not upload file", e);
+            throw new RuntimeException("Unexpected error. Could not upload file");
+        }
+    }
+
+    public void validateFolderExists(String path) {
+        String normalizedPath = path.endsWith("/") ? path : path + "/";
+
+        ListObjectsArgs args = ListObjectsArgs.builder()
+                .bucket(defaultBucketName)
+                .prefix(normalizedPath)
+                .maxKeys(1)
+                .build();
+
+        Iterable<Result<Item>> results = minioClient.listObjects(args);
+
+        if (!results.iterator().hasNext()) {
+            throw new ResourceNotFoundException("Folder not found: " + path);
         }
     }
 }

@@ -1,13 +1,15 @@
 package org.example.filestorageapi.utils;
 
+import jakarta.validation.ValidationException;
 import lombok.experimental.UtilityClass;
 import org.example.filestorageapi.errors.InvalidPathException;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
 @UtilityClass
-public class PathUtils {
+public class Validator {
 
     public static String decodeAndValidate(String encodedPath) {
         String decodedPath = decode(encodedPath);
@@ -50,6 +52,17 @@ public class PathUtils {
 
         if (path.contains("//") || path.contains("\\\\")) {
             throw new InvalidPathException("Path cannot have repeated slashes (// or \\\\)");
+        }
+    }
+
+    public static void validate(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new ValidationException("Uploaded file is empty");
+        }
+
+        long maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.getSize() > maxSize) {
+            throw new ValidationException("File size exceeds the 5MB limit");
         }
     }
 }
