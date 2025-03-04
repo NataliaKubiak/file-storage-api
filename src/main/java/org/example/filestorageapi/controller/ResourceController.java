@@ -2,9 +2,11 @@ package org.example.filestorageapi.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.example.filestorageapi.dto.ResourceResponseDto;
 import org.example.filestorageapi.service.MinioService;
-import org.example.filestorageapi.utils.PathUtils;
+import org.example.filestorageapi.utils.Validator;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -14,6 +16,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Log4j2
 @Controller
@@ -33,7 +38,7 @@ public class ResourceController {
     // /download?path=$path
     @GetMapping("/download")
     public ResponseEntity<StreamingResponseBody> downloadObject(@RequestParam String path) {
-        PathUtils.validate(path);
+        Validator.validate(path);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
@@ -67,6 +72,34 @@ public class ResourceController {
         return path;
     }
 
+    /**
+     * + 201 Created
+     * + 400 - невалидное тело запроса
+     * + 404 - папка, в которую мы загружаем ресурс(ы) не существует
+     * + 401 - пользователь не авторизован
+     * + 500 - неизвестная ошибка
+     */
+    // path=$path
+    @PostMapping()
+    public ResponseEntity<List<ResourceResponseDto>> uploadFiles(
+            @RequestParam("file") List<MultipartFile> files,
+            @RequestParam String path) {
+        Validator.validate(path);
+        minioService.validateFolderExists(path);
+
+        List<ResourceResponseDto> responses = new ArrayList<>();
+        for (MultipartFile file : files) {
+            Validator.validate(file);
+
+            ResourceResponseDto response = minioService.uploadFile(file, path, file.getContentType());
+            responses.add(response);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(responses);
+    }
+
     // TODO: 03/03/2025 for testing!!!
     @PostMapping("/folder")
     public ResponseEntity<String> createFolder(@RequestParam("folderName") String folderName) {
@@ -80,31 +113,5 @@ public class ResourceController {
     public ResponseEntity<String> init() {
         minioService.init();
         return ResponseEntity.ok("MinIO initialized successfully");
-    }
-
-    /**
-     * 201 Created
-     * 400 - невалидное тело запроса
-     * 404 - папка, в которую мы загружаем ресурс(ы) не существует
-     * 401 - пользователь не авторизован
-     * 500 - неизвестная ошибка
-     */
-    // TODO: 03/03/2025 for testing!!!
-    //resource?  path=$path
-    @PostMapping()
-    public ResponseEntity<String> uploadFile(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "objectName", required = false) String objectName) {
-
-        if (objectName == null || objectName.isEmpty()) {
-            objectName = file.getOriginalFilename();
-        }
-
-        String fileUrl = minioService.uploadFile(
-                file,
-                objectName,
-                file.getContentType());
-
-        return ResponseEntity.ok("File uploaded successfully: " + fileUrl);
     }
 }
