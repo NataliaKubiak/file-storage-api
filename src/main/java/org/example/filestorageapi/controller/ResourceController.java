@@ -5,7 +5,6 @@ import lombok.extern.log4j.Log4j2;
 import org.example.filestorageapi.dto.ResourceInfoResponseDto;
 import org.example.filestorageapi.dto.ResourceStreamResponseDto;
 import org.example.filestorageapi.security.CustomUserDetails;
-import org.example.filestorageapi.service.MinioService;
 import org.example.filestorageapi.service.ResourceManagerService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -28,7 +27,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ResourceController {
 
-    private final MinioService minioService;
     private final ResourceManagerService resourceManagerService;
 
     /**
@@ -46,12 +44,9 @@ public class ResourceController {
 
         ResourceStreamResponseDto streamResponseDto = resourceManagerService.downloadResourceAsStream(path, userDetails.getId());
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        headers.setContentDispositionFormData("attachment", streamResponseDto.getName());
-
         return ResponseEntity.ok()
-                .headers(headers)
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + streamResponseDto.getName())
                 .body(streamResponseDto.getResponseBody());
     }
 

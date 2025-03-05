@@ -7,13 +7,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @UtilityClass
 public class Validator {
 
-    public static String decodeAndValidate(String encodedPath) {
+    public static String decodeAndValidateUrlPath(String encodedPath) {
         String decodedPath = decode(encodedPath);
-        validate(decodedPath);
+        validateFiles(decodedPath);
         return decodedPath;
     }
 
@@ -29,7 +30,7 @@ public class Validator {
         }
     }
 
-    public static void validate(String path) {
+    public static void validateFiles(String path) {
         //если validate использовать без decode - то надо все равно проверять на null
         if (path == null || path.isEmpty()) {
             throw new InvalidPathException("Path cannot be empty");
@@ -55,14 +56,21 @@ public class Validator {
         }
     }
 
-    public static void validate(MultipartFile file) {
-        if (file.isEmpty()) {
-            throw new ValidationException("Uploaded file is empty");
+    public static void validateFiles(List<MultipartFile> files) {
+        if (files == null || files.isEmpty()) {
+            throw new ValidationException("Uploaded files are empty");
         }
 
         long maxSize = 10 * 1024 * 1024; // 10MB
-        if (file.getSize() > maxSize) {
-            throw new ValidationException("File size exceeds the 5MB limit");
+
+        for (MultipartFile file : files) {
+            if (file.getOriginalFilename() == null || file.getOriginalFilename().trim().isEmpty()) {
+                throw new ValidationException("File name can't be empty or consist of spaces");
+            }
+
+            if (file.getSize() > maxSize) {
+                throw new ValidationException("File '" + file.getOriginalFilename() + "' size exceeds the 10MB limit");
+            }
         }
     }
 }

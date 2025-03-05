@@ -21,7 +21,7 @@ public class DirectoryController {
     //?path=$path
     @PostMapping()
     public ResponseEntity<String> createFolder(@RequestParam String path) {
-        Validator.validate(path);
+        Validator.decodeAndValidateUrlPath(path);
 
 
 

@@ -18,12 +18,13 @@ public class ResourceManagerService {
     private final MinioService minioService;
 
     public List<ResourceInfoResponseDto> uploadResources(List<MultipartFile> files, String path) {
-        Validator.validate(path);
+        Validator.decodeAndValidateUrlPath(path);
+        Validator.validateFiles(files);
+
         minioService.validateFolderExists(path);
 
         List<ResourceInfoResponseDto> resourceInfoList = new ArrayList<>();
         for (MultipartFile file : files) {
-            Validator.validate(file);
 
             ResourceInfoResponseDto response = minioService.uploadFile(file, path, file.getContentType());
             resourceInfoList.add(response);
@@ -33,7 +34,7 @@ public class ResourceManagerService {
     }
 
     public ResourceStreamResponseDto downloadResourceAsStream(String path, int userId) {
-        Validator.validate(path);
+        Validator.decodeAndValidateUrlPath(path);
 
         if (minioService.isFolder(path)) {
             return ResourceStreamResponseDto.builder()
