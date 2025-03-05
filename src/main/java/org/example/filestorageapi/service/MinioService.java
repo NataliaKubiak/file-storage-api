@@ -42,50 +42,6 @@ public class MinioService {
         }
     }
 
-    private Iterable<Result<Item>> listAllObjectsInDir(String folderPath) {
-        return minioClient.listObjects(
-                ListObjectsArgs.builder()
-                        .bucket(bucketName)
-                        .prefix(folderPath)
-                        .recursive(true)
-                        .build());
-    }
-
-    private Iterable<Result<Item>> listFirstObjectInDir(String folderPath) {
-        return minioClient.listObjects(
-                ListObjectsArgs.builder()
-                        .bucket(bucketName)
-                        .prefix(folderPath)
-                        .maxKeys(1)
-                        .build());
-    }
-
-    private InputStream getObject(String path) throws Exception {
-        return minioClient.getObject(
-                GetObjectArgs.builder()
-                        .bucket(bucketName)
-                        .object(path)
-                        .build());
-    }
-
-    private void putObject(String fullPath, InputStream inputStream, long objectSize, String contentType) throws Exception {
-        minioClient.putObject(
-                PutObjectArgs.builder()
-                        .bucket(bucketName)
-                        .object(fullPath)
-                        .stream(inputStream, objectSize, -1)
-                        .contentType(contentType)
-                        .build());
-    }
-
-    private void statObject(String filePath) throws Exception {
-        minioClient.statObject(
-                StatObjectArgs.builder()
-                        .bucket(bucketName)
-                        .object(filePath)
-                        .build());
-    }
-
     // refactored
     @PostConstruct
     public void init() {
@@ -137,7 +93,6 @@ public class MinioService {
 
     public boolean isFolderExists(String path) {
         String normalizedPath = PathUtils.addSlashToTheEnd(path);
-
         Iterable<Result<Item>> results = listFirstObjectInDir(normalizedPath);
 
         return results.iterator().hasNext();
@@ -242,5 +197,49 @@ public class MinioService {
             log.error("Error uploading file: {}", e.getMessage());
             throw new RuntimeException("Unexpected error. Could not upload file");
         }
+    }
+
+    private Iterable<Result<Item>> listAllObjectsInDir(String folderPath) {
+        return minioClient.listObjects(
+                ListObjectsArgs.builder()
+                        .bucket(bucketName)
+                        .prefix(folderPath)
+                        .recursive(true)
+                        .build());
+    }
+
+    private Iterable<Result<Item>> listFirstObjectInDir(String folderPath) {
+        return minioClient.listObjects(
+                ListObjectsArgs.builder()
+                        .bucket(bucketName)
+                        .prefix(folderPath)
+                        .maxKeys(1)
+                        .build());
+    }
+
+    private InputStream getObject(String path) throws Exception {
+        return minioClient.getObject(
+                GetObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(path)
+                        .build());
+    }
+
+    private void putObject(String fullPath, InputStream inputStream, long objectSize, String contentType) throws Exception {
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(fullPath)
+                        .stream(inputStream, objectSize, -1)
+                        .contentType(contentType)
+                        .build());
+    }
+
+    private void statObject(String filePath) throws Exception {
+        minioClient.statObject(
+                StatObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(filePath)
+                        .build());
     }
 }
