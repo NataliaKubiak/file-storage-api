@@ -32,64 +32,13 @@ public class MinioService {
 
     public void createFolder(String folderPath) {
         try {
-            folderPath = PathUtils.addSlashToDirPath(folderPath);
+            folderPath = PathUtils.addSlashToTheEnd(folderPath);
 
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(folderPath)
-                            .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
-                            .build());
+            putObject(folderPath, new ByteArrayInputStream(new byte[0]), 0, "application/x-directory");
+
         } catch (Exception e) {
             log.error("Error creating folder: {}", e.getMessage());
             throw new RuntimeException("Could not create folder");
-        }
-    }
-
-    public ResourceInfoResponseDto uploadFile(MultipartFile file, String urlPath, String contentType) {
-        urlPath = PathUtils.addSlashToDirPath(urlPath);
-
-        String fixedFilename = file.getOriginalFilename().replace(":", "/");
-        String fullFilename = urlPath + fixedFilename;
-
-        String fileName = fixedFilename;
-        String filePath = urlPath;
-
-        if (fileName.contains("/")) {
-            fileName = fileName.substring(fileName.lastIndexOf("/") + 1);
-
-            String subdirs = fixedFilename.substring(0, fixedFilename.lastIndexOf("/"));
-            filePath = urlPath + subdirs;
-        }
-
-        try {
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(fullFilename)
-                            .stream(file.getInputStream(), file.getSize(), -1)
-                            .contentType(contentType)
-                            .build());
-
-            return ResourceInfoResponseDto.builder()
-                    .path(filePath.endsWith("/") ? filePath.substring(0, filePath.length() - 1) : filePath)
-                    .name(fileName)
-                    .size(file.getSize())
-                    .type(ResourceType.FILE)
-                    .build();
-        } catch (Exception e) {
-            log.error("Error uploading file: {}", e.getMessage());
-            throw new RuntimeException("Unexpected error. Could not upload file");
-        }
-    }
-
-    public void validateFolderExists(String path) {
-        String normalizedPath = PathUtils.addSlashToDirPath(path);
-
-        Iterable<Result<Item>> results = listFirstObjectInDir(normalizedPath);
-
-        if (!results.iterator().hasNext()) {
-            throw new ResourceNotFoundException("Folder not found: " + path);
         }
     }
 
@@ -119,6 +68,16 @@ public class MinioService {
                         .build());
     }
 
+    private void putObject(String fullPath, InputStream inputStream, long objectSize, String contentType) throws Exception {
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(fullPath)
+                        .stream(inputStream, objectSize, -1)
+                        .contentType(contentType)
+                        .build());
+    }
+
     // refactored
     @PostConstruct
     public void init() {
@@ -137,12 +96,12 @@ public class MinioService {
 
         } catch (Exception e) {
             log.error("Error initializing MinIO: {}", e.getMessage());
-            throw new RuntimeException("Could not initialize MinIO");
+            throw new RuntimeException("Could not initialize MinIO", e);
         }
     }
 
     public boolean isFolderOrThrowNotFound(String path) {
-        String folderPath = PathUtils.addSlashToDirPath(path);
+        String folderPath = PathUtils.addSlashToTheEnd(path);
 
         Iterable<Result<Item>> results = listFirstObjectInDir(folderPath);
         boolean hasResults = results.iterator().hasNext();
@@ -159,8 +118,8 @@ public class MinioService {
                                 .object(filePath)
                                 .build()
                 );
-
                 return false;
+
             } catch (ErrorResponseException e) {
                 if (e.errorResponse().code().equals("NoSuchKey")) {
                     throw new ResourceNotFoundException("File or Directory doesn't exist: " + path);
@@ -173,8 +132,18 @@ public class MinioService {
         }
     }
 
+    public void validateFolderExists(String path) {
+        String normalizedPath = PathUtils.addSlashToTheEnd(path);
+
+        Iterable<Result<Item>> results = listFirstObjectInDir(normalizedPath);
+
+        if (!results.iterator().hasNext()) {
+            throw new ResourceNotFoundException("Folder not found: " + path);
+        }
+    }
+
     public StreamingResponseBody downloadFolderAsZipStream(String folderPath) {
-        folderPath = PathUtils.addSlashToDirPath(folderPath);
+        folderPath = PathUtils.addSlashToTheEnd(folderPath);
 
         final String finalFolderPath = folderPath;
 
@@ -238,4 +207,19 @@ public class MinioService {
         };
     }
 
+    public ResourceInfoResponseDto uploadFile(MultipartFile file, String path, String fileName) {
+        try {
+            putObject(path + fileName, file.getInputStream(), file.getSize(), file.getContentType());
+
+            return ResourceInfoResponseDto.builder()
+                    .path(path)
+                    .name(fileName)
+                    .size(file.getSize())
+                    .type(ResourceType.FILE)
+                    .build();
+        } catch (Exception e) {
+            log.error("Error uploading file: {}", e.getMessage());
+            throw new RuntimeException("Unexpected error. Could not upload file");
+        }
+    }
 }
