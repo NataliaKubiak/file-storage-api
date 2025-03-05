@@ -11,7 +11,6 @@ import java.util.List;
 public class PathAndFileValidator {
 
     public static void validatePath(String path) {
-        //если validate использовать без decode - то надо все равно проверять на null
         if (path == null || path.isEmpty()) {
             throw new InvalidPathException("Path cannot be empty");
         }
