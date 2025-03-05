@@ -35,7 +35,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({
-            UserAlreadyExistException.class
+            UserAlreadyExistException.class,
+            ResourceAlreadyExistsException.class
     })
     public ResponseEntity<ErrorResponse> handleUserAlreadyExistException(Exception ex) {
         return new ResponseEntity<>(new ErrorResponse(ex.getMessage()), HttpStatus.CONFLICT); //409

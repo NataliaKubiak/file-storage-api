@@ -78,6 +78,14 @@ public class MinioService {
                         .build());
     }
 
+    private void statObject(String filePath) throws Exception {
+        minioClient.statObject(
+                StatObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(filePath)
+                        .build());
+    }
+
     // refactored
     @PostConstruct
     public void init() {
@@ -112,12 +120,7 @@ public class MinioService {
             try {
                 String filePath = PathUtils.removeSlashFromTheEnd(path);
 
-                minioClient.statObject(
-                        StatObjectArgs.builder()
-                                .bucket(bucketName)
-                                .object(filePath)
-                                .build()
-                );
+                statObject(filePath);
                 return false;
 
             } catch (ErrorResponseException e) {
@@ -132,15 +135,33 @@ public class MinioService {
         }
     }
 
-    public void validateFolderExists(String path) {
+    public boolean isFolderExists(String path) {
         String normalizedPath = PathUtils.addSlashToTheEnd(path);
 
         Iterable<Result<Item>> results = listFirstObjectInDir(normalizedPath);
 
-        if (!results.iterator().hasNext()) {
-            throw new ResourceNotFoundException("Folder not found: " + path);
+        return results.iterator().hasNext();
+    }
+
+    public boolean isFileExist(String filePath) {
+        // TODO: 06/03/2025 надо ли нам тут удалять слеш в конце или мы уверены что слеша не будет?
+        String normalizedPath = PathUtils.removeSlashFromTheEnd(filePath);
+
+        try {
+            statObject(normalizedPath);
+
+            return true;
+        } catch (ErrorResponseException e) {
+            if (e.errorResponse().code().equals("NoSuchKey")) {
+                return false;
+            }
+            throw new RuntimeException("Error checking if file exists", e);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error checking if file exists", e);
         }
     }
+
 
     public StreamingResponseBody downloadFolderAsZipStream(String folderPath) {
         folderPath = PathUtils.addSlashToTheEnd(folderPath);

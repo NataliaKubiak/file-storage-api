@@ -3,6 +3,8 @@ package org.example.filestorageapi.service;
 import lombok.RequiredArgsConstructor;
 import org.example.filestorageapi.dto.ResourceInfoResponseDto;
 import org.example.filestorageapi.dto.ResourceStreamResponseDto;
+import org.example.filestorageapi.errors.ResourceAlreadyExistsException;
+import org.example.filestorageapi.errors.ResourceNotFoundException;
 import org.example.filestorageapi.utils.PathAndFileValidator;
 import org.example.filestorageapi.utils.PathUtils;
 import org.springframework.stereotype.Service;
@@ -51,8 +53,9 @@ public class ResourceManagerService {
         List<String> pathsToAllFolders = PathUtils.getPathsForAllFolders(fullPath);
 
         for (String folderPath : pathsToAllFolders) {
-            minioService.validateFolderExists(folderPath);
-            //начинается с PathUtils.addSlashToTheEnd(path);
+            if (!minioService.isFolderExists(folderPath)) {
+                throw new ResourceNotFoundException("Folder not found: " + folderPath);
+            }
         }
 
         List<ResourceInfoResponseDto> resourceInfoList = new ArrayList<>();
@@ -62,6 +65,10 @@ public class ResourceManagerService {
             String fullFilename = fullPath + fixedFilename;
             String filePath = PathUtils.getPathForFile(fullFilename);
             String fileName = PathUtils.extractFilenameFromPath(fullFilename);
+
+            if (minioService.isFileExist(fullFilename)) {
+                throw new ResourceAlreadyExistsException("File '" + fileName + "' already exist in directory: " + filePath);
+            }
 
             ResourceInfoResponseDto response = minioService.uploadFile(file, filePath, fileName);
             resourceInfoList.add(response);
