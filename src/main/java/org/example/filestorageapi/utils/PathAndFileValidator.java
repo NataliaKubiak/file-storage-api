@@ -5,32 +5,12 @@ import lombok.experimental.UtilityClass;
 import org.example.filestorageapi.errors.InvalidPathException;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @UtilityClass
-public class Validator {
+public class PathAndFileValidator {
 
-    public static String decodeAndValidateUrlPath(String encodedPath) {
-        String decodedPath = decode(encodedPath);
-        validateFiles(decodedPath);
-        return decodedPath;
-    }
-
-    public static String decode(String encodedPath) {
-        if (encodedPath == null || encodedPath.isEmpty()) {
-            throw new InvalidPathException("Path cannot be empty");
-        }
-
-        try {
-            return URLDecoder.decode(encodedPath, StandardCharsets.UTF_8);
-        } catch (IllegalArgumentException e) {
-            throw new InvalidPathException("Invalid URL encoding: " + e.getMessage());
-        }
-    }
-
-    public static void validateFiles(String path) {
+    public static void validatePath(String path) {
         //если validate использовать без decode - то надо все равно проверять на null
         if (path == null || path.isEmpty()) {
             throw new InvalidPathException("Path cannot be empty");

@@ -46,7 +46,7 @@ public class ResourceController {
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + streamResponseDto.getName())
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + streamResponseDto.getName())
                 .body(streamResponseDto.getResponseBody());
     }
 
