@@ -7,7 +7,7 @@ import org.example.filestorageapi.utils.ResourceType;
 @Getter
 @AllArgsConstructor
 @Builder
-public class ResourceResponseDto {
+public class ResourceInfoResponseDto {
     /**
      * "path": "folder1/folder2", // путь к папке, в которой лежит ресурс
      * "name": "file.txt",

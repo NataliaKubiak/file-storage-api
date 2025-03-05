@@ -3,10 +3,12 @@ package org.example.filestorageapi.service;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
 import io.minio.messages.Item;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.example.filestorageapi.dto.ResourceResponseDto;
+import org.example.filestorageapi.dto.ResourceInfoResponseDto;
 import org.example.filestorageapi.errors.ResourceNotFoundException;
+import org.example.filestorageapi.utils.PathUtils;
 import org.example.filestorageapi.utils.ResourceType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,21 +28,21 @@ public class MinioService {
     private final MinioClient minioClient;
 
     @Value("${minio.bucketName}")
-    private String defaultBucketName;
+    private String bucketName;
 
-    // TODO: 03/03/2025 for testing
+    @PostConstruct
     public void init() {
         try {
             boolean bucketExists = minioClient.bucketExists(BucketExistsArgs.builder()
-                    .bucket(defaultBucketName)
+                    .bucket(bucketName)
                     .build());
             if (!bucketExists) {
                 minioClient.makeBucket(MakeBucketArgs.builder()
-                        .bucket(defaultBucketName)
+                        .bucket(bucketName)
                         .build());
-                log.debug("Bucket '{}' created successfully", defaultBucketName);
+                log.debug("Bucket '{}' created successfully", bucketName);
             } else {
-                log.debug("Bucket '{}' already exists", defaultBucketName);
+                log.debug("Bucket '{}' already exists", bucketName);
             }
 
 
@@ -51,15 +53,9 @@ public class MinioService {
     }
 
     public boolean isFolder(String path) {
-        String normalizedPath = path.endsWith("/") ? path : path + "/";
+        String normalizedPath = PathUtils.addSlashToDirPath(path);
 
-        ListObjectsArgs args = ListObjectsArgs.builder()
-                .bucket(defaultBucketName)
-                .prefix(normalizedPath)
-                .maxKeys(1)
-                .build();
-
-        Iterable<Result<Item>> results = minioClient.listObjects(args);
+        Iterable<Result<Item>> results = listFirstObjectInDir(normalizedPath);
         boolean hasResults = results.iterator().hasNext();
 
         if (hasResults) {
@@ -68,7 +64,7 @@ public class MinioService {
             try {
                 minioClient.statObject(
                         StatObjectArgs.builder()
-                                .bucket(defaultBucketName)
+                                .bucket(bucketName)
                                 .object(path.endsWith("/") ? path.substring(0, path.length() - 1) : path)
                                 .build()
                 );
@@ -88,11 +84,7 @@ public class MinioService {
 
     public StreamingResponseBody downloadFileAsStream(String rawPath) {
         return outputStream -> {
-            try (InputStream fileStream = minioClient.getObject(
-                    GetObjectArgs.builder()
-                            .bucket(defaultBucketName)
-                            .object(rawPath)
-                            .build())) {
+            try (InputStream fileStream = getObject(rawPath)) {
 
                 byte[] buffer = new byte[8192];
                 int bytesRead;
@@ -108,21 +100,13 @@ public class MinioService {
     }
 
     public StreamingResponseBody downloadFolderAsZipStream(String folderPath) {
-        if (!folderPath.endsWith("/")) {
-            folderPath = folderPath + "/";
-        }
+        folderPath = PathUtils.addSlashToDirPath(folderPath);
 
         final String finalFolderPath = folderPath;
 
         return outputStream -> {
             try (ZipOutputStream zipOut = new ZipOutputStream(outputStream)) {
-                Iterable<Result<Item>> results = minioClient.listObjects(
-                        ListObjectsArgs.builder()
-                                .bucket(defaultBucketName)
-                                .prefix(finalFolderPath)
-                                .recursive(true)
-                                .build()
-                );
+                Iterable<Result<Item>> results = listAllObjectsInDir(finalFolderPath);
 
                 for (Result<Item> result : results) {
                     Item item;
@@ -142,12 +126,7 @@ public class MinioService {
                     try {
                         zipOut.putNextEntry(new ZipEntry(entryName));
 
-                        InputStream objectStream = minioClient.getObject(
-                                GetObjectArgs.builder()
-                                        .bucket(defaultBucketName)
-                                        .object(objectName)
-                                        .build()
-                        );
+                        InputStream objectStream = getObject(objectName);
 
                         byte[] buffer = new byte[8192];
                         int bytesRead;
@@ -170,13 +149,11 @@ public class MinioService {
 
     public void createFolder(String folderPath) {
         try {
-            if (!folderPath.endsWith("/")) {
-                folderPath = folderPath + "/";
-            }
+            folderPath = PathUtils.addSlashToDirPath(folderPath);
 
             minioClient.putObject(
                     PutObjectArgs.builder()
-                            .bucket(defaultBucketName)
+                            .bucket(bucketName)
                             .object(folderPath)
                             .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
                             .build());
@@ -186,10 +163,8 @@ public class MinioService {
         }
     }
 
-    public ResourceResponseDto uploadFile(MultipartFile file, String urlPath, String contentType) {
-        if (!urlPath.endsWith("/")) {
-            urlPath = urlPath + "/";
-        }
+    public ResourceInfoResponseDto uploadFile(MultipartFile file, String urlPath, String contentType) {
+        urlPath = PathUtils.addSlashToDirPath(urlPath);
 
         String fixedFilename = file.getOriginalFilename().replace(":", "/");
         String fullFilename = urlPath + fixedFilename;
@@ -207,13 +182,13 @@ public class MinioService {
         try {
             minioClient.putObject(
                     PutObjectArgs.builder()
-                            .bucket(defaultBucketName)
+                            .bucket(bucketName)
                             .object(fullFilename)
                             .stream(file.getInputStream(), file.getSize(), -1)
                             .contentType(contentType)
                             .build());
 
-            return ResourceResponseDto.builder()
+            return ResourceInfoResponseDto.builder()
                     .path(filePath.endsWith("/") ? filePath.substring(0, filePath.length() - 1) : filePath)
                     .name(fileName)
                     .size(file.getSize())
@@ -226,18 +201,38 @@ public class MinioService {
     }
 
     public void validateFolderExists(String path) {
-        String normalizedPath = path.endsWith("/") ? path : path + "/";
+        String normalizedPath = PathUtils.addSlashToDirPath(path);
 
-        ListObjectsArgs args = ListObjectsArgs.builder()
-                .bucket(defaultBucketName)
-                .prefix(normalizedPath)
-                .maxKeys(1)
-                .build();
-
-        Iterable<Result<Item>> results = minioClient.listObjects(args);
+        Iterable<Result<Item>> results = listFirstObjectInDir(normalizedPath);
 
         if (!results.iterator().hasNext()) {
             throw new ResourceNotFoundException("Folder not found: " + path);
         }
+    }
+
+    private Iterable<Result<Item>> listAllObjectsInDir(String folderPath) {
+        return minioClient.listObjects(
+                ListObjectsArgs.builder()
+                        .bucket(bucketName)
+                        .prefix(folderPath)
+                        .recursive(true)
+                        .build());
+    }
+
+    private Iterable<Result<Item>> listFirstObjectInDir(String folderPath) {
+        return minioClient.listObjects(
+                ListObjectsArgs.builder()
+                        .bucket(bucketName)
+                        .prefix(folderPath)
+                        .maxKeys(1)
+                        .build());
+    }
+
+    private InputStream getObject(String path) throws Exception {
+        return minioClient.getObject(
+                GetObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(path)
+                        .build());
     }
 }
