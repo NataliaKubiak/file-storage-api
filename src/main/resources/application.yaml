@@ -13,11 +13,26 @@ spring:
       show_sql: true
       format_sql: true
       hbm2ddl.auto: validate
-#      dialect: org.hibernate.dialect.PostgreSQLDialect
 
   flyway:
     enabled: true
     baseline-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  session:
+    store-type: redis
+    redis:
+      flush-mode: on-save
+      namespace: spring:session
+
+server:
+  servlet:
+    session:
+      timeout: 1800s
 
 minio:
   endpoint: http://localhost:9000
@@ -29,3 +44,5 @@ logging:
   level:
     org.springframework.security: DEBUG
     org.springframework.web: DEBUG
+    org.springframework.session: DEBUG
+    org.springframework.data.redis: DEBUG
