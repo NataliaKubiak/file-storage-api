@@ -110,10 +110,10 @@ public class MinioService {
             if (e.errorResponse().code().equals("NoSuchKey")) {
                 return false;
             }
-            throw new RuntimeException("Error checking if file exists", e);
+            throw new RuntimeException("Error checking if file exists");
 
         } catch (Exception e) {
-            throw new RuntimeException("Error checking if file exists", e);
+            throw new RuntimeException("Error checking if file exists");
         }
     }
 
@@ -187,6 +187,7 @@ public class MinioService {
         try {
             putObject(path + fileName, file.getInputStream(), file.getSize(), file.getContentType());
 
+            // TODO: 06/03/2025 это можно вынести в ResourceManagerService
             return ResourceInfoResponseDto.builder()
                     .path(path)
                     .name(fileName)
@@ -195,7 +196,32 @@ public class MinioService {
                     .build();
         } catch (Exception e) {
             log.error("Error uploading file: {}", e.getMessage());
-            throw new RuntimeException("Unexpected error. Could not upload file");
+            throw new RuntimeException("Unexpected error. Could not upload file: " + path + fileName);
+        }
+    }
+
+    public void deleteFile(String path) {
+        try {
+            removeObject(path);
+
+        } catch (Exception e) {
+            log.error("Error deleting file: {}", e.getMessage());
+            throw new RuntimeException("Unexpected error. Could not delete file: " + path);
+        }
+    }
+
+    public void deleteFolder(String folderPath) {
+        String normalizedPath = PathUtils.addSlashToTheEnd(folderPath);
+
+        try {
+            Iterable<Result<Item>> objects = listAllObjectsInDir(normalizedPath);
+
+            for (Result<Item> result : objects) {
+                removeObject(result.get().objectName());
+            }
+        } catch (Exception e) {
+            log.error("Error deleting folder: {}", e.getMessage());
+            throw new RuntimeException("Unexpected error. Could not delete folder: " + folderPath);
         }
     }
 
@@ -241,5 +267,14 @@ public class MinioService {
                         .bucket(bucketName)
                         .object(filePath)
                         .build());
+    }
+
+    private void removeObject(String objectName) throws Exception {
+        minioClient.removeObject(
+                RemoveObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(objectName)
+                        .build()
+        );
     }
 }

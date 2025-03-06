@@ -12,10 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
@@ -69,5 +66,17 @@ public class ResourceController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(resourceInfoList);
+    }
+
+    // path=$path
+    @DeleteMapping
+    public ResponseEntity<String> delete(@RequestParam String path,
+                                         @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        resourceManagerService.delete(path, userDetails.getId());
+
+        return ResponseEntity
+                .status(HttpStatus.NO_CONTENT)
+                .build();
     }
 }

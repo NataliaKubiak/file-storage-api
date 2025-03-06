@@ -76,4 +76,18 @@ public class ResourceManagerService {
 
         return resourceInfoList;
     }
+
+    public void delete(String path, int userId) {
+        PathAndFileValidator.validatePath(path);
+        String fullPath = PathUtils.getFullPathWithUserDir(path, userId);
+
+        boolean isFolder = minioService.isFolderOrThrowNotFound(fullPath);
+
+        if (isFolder) {
+            minioService.deleteFolder(fullPath);
+        } else {
+            minioService.deleteFile(fullPath);
+        }
+
+    }
 }
