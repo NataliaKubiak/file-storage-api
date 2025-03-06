@@ -8,7 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @UtilityClass
-public class PathAndFileValidator {
+public class Validator {
 
     public static void validatePath(String path) {
         if (path == null || path.isEmpty()) {
@@ -49,6 +49,22 @@ public class PathAndFileValidator {
 
             if (file.getSize() > maxSize) {
                 throw new ValidationException("File '" + file.getOriginalFilename() + "' size exceeds the 10MB limit");
+            }
+        }
+    }
+
+    public static void validateQuery(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            throw new ValidationException("Search query cannot be empty");
+        }
+
+        if (query.length() > 100) {
+            throw new ValidationException("Search query too long (max 100 characters)");
+        }
+
+        for (char c : query.toCharArray()) {
+            if (!Character.toString(c).matches("[a-zA-Z0-9 ._-]")) {
+                throw new ValidationException("Search query contains invalid character: '" + c + "'");
             }
         }
     }
