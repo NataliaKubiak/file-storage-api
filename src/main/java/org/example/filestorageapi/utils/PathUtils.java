@@ -61,4 +61,8 @@ public class PathUtils {
             return "";
         }
     }
+
+    public static boolean hasSlashInTheEnd(String string) {
+        return string.endsWith("/");
+    }
 }

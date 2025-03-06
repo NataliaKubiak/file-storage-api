@@ -5,7 +5,7 @@ import org.example.filestorageapi.dto.ResourceInfoResponseDto;
 import org.example.filestorageapi.dto.ResourceStreamResponseDto;
 import org.example.filestorageapi.errors.ResourceAlreadyExistsException;
 import org.example.filestorageapi.errors.ResourceNotFoundException;
-import org.example.filestorageapi.utils.PathAndFileValidator;
+import org.example.filestorageapi.utils.Validator;
 import org.example.filestorageapi.utils.PathUtils;
 import org.example.filestorageapi.utils.ResourceType;
 import org.springframework.stereotype.Service;
@@ -21,11 +21,10 @@ public class ResourceManagerService {
     private final MinioService minioService;
 
     public ResourceStreamResponseDto downloadResourceAsStream(String path, int userId) {
-        PathAndFileValidator.validatePath(path);
+        Validator.validatePath(path);
         String fullPath = PathUtils.getFullPathWithUserDir(path, userId);
 
         boolean isFolder = minioService.isFolderOrThrowNotFound(fullPath);
-        //начинается с PathUtils.addSlashToTheEnd(path);
 
         String filename = PathUtils.extractFilenameFromPath(fullPath);
         if (isFolder) {
@@ -33,7 +32,6 @@ public class ResourceManagerService {
             return ResourceStreamResponseDto.builder()
                     .name(PathUtils.encode(filename) + ".zip")
                     .responseBody(minioService.downloadFolderAsZipStream(fullPath))
-                    //начинается с PathUtils.addSlashToTheEnd(path);
                     .build();
 
         } else {
@@ -45,8 +43,8 @@ public class ResourceManagerService {
     }
 
     public List<ResourceInfoResponseDto> uploadResources(List<MultipartFile> files, String path, int userId) {
-        PathAndFileValidator.validatePath(path);
-        PathAndFileValidator.validateFiles(files);
+        Validator.validatePath(path);
+        Validator.validateFiles(files);
 
         String fullPath = PathUtils.getFullPathWithUserDir(path, userId);
         fullPath = PathUtils.addSlashToTheEnd(fullPath);
@@ -79,7 +77,7 @@ public class ResourceManagerService {
     }
 
     public void delete(String path, int userId) {
-        PathAndFileValidator.validatePath(path);
+        Validator.validatePath(path);
         String fullPath = PathUtils.getFullPathWithUserDir(path, userId);
 
         boolean isFolder = minioService.isFolderOrThrowNotFound(fullPath);
@@ -124,7 +122,7 @@ public class ResourceManagerService {
 //    }
 
     public ResourceInfoResponseDto getInfo(String path, int userId) {
-        PathAndFileValidator.validatePath(path);
+        Validator.validatePath(path);
 
         String fullPath = PathUtils.getFullPathWithUserDir(path, userId);
 
@@ -151,5 +149,12 @@ public class ResourceManagerService {
                     .type(ResourceType.FILE)
                     .build();
         }
+    }
+
+    public List<ResourceInfoResponseDto> searchResources(String searchWord, int userId) {
+        Validator.validateQuery(searchWord);
+
+        String userFolderPath = PathUtils.getFullPathWithUserDir("", userId);
+        return minioService.searchByName(searchWord, userFolderPath);
     }
 }

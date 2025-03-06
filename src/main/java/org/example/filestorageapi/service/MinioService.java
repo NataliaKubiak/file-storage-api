@@ -17,6 +17,8 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -42,7 +44,6 @@ public class MinioService {
         }
     }
 
-    // refactored
     @PostConstruct
     public void init() {
         try {
@@ -235,6 +236,44 @@ public class MinioService {
             log.error("Error getting file info: {}", e.getMessage());
             throw new RuntimeException("Unexpected error. Could not get file info: " + path);
         }
+    }
+
+    public List<ResourceInfoResponseDto> searchByName(String searchWord, String userFolder) {
+        List<ResourceInfoResponseDto> matchingItems = new ArrayList<>();
+
+        try {
+            Iterable<Result<Item>> results = listAllObjectsInDir(userFolder);
+
+            for (Result<Item> result : results) {
+                Item item = result.get();
+                String objectFullName = item.objectName();
+
+                boolean isFolder = PathUtils.hasSlashInTheEnd(objectFullName);
+
+                // TODO: 06/03/2025 для папок path = "user-5-files/pictures/" и objectName = "pictures"
+                //или path = "user-5-files/pictures2/" и objectName = "pictures2"
+                //понять как должны отображаться имена и пути для папок и исправить
+                String path = PathUtils.getPathForFile(objectFullName);
+                String objectName = PathUtils.extractFilenameFromPath(objectFullName);
+
+                if (objectName.toLowerCase().contains(searchWord.toLowerCase())) {
+
+                    ResourceInfoResponseDto itemInfo = ResourceInfoResponseDto.builder()
+                            .path(path)
+                            .name(objectName)
+                            .size(isFolder ? 0 : item.size())
+                            .type(isFolder ? ResourceType.DIRECTORY : ResourceType.FILE)
+                            .build();
+
+                    matchingItems.add(itemInfo);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error searching for items in MinIO: {}", e.getMessage());
+            throw new RuntimeException("Error searching for items in MinIO");
+        }
+
+        return matchingItems;
     }
 
     private Iterable<Result<Item>> listAllObjectsInDir(String folderPath) {

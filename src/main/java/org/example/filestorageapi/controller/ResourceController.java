@@ -75,6 +75,7 @@ public class ResourceController {
      * + 404 - ресурс не найден
      * + 500 - неизвестная ошибка
      */
+    // TODO: 06/03/2025 ResponseEntity<String> - там точно String внутри должен быть?
     // path=$path
     @DeleteMapping
     public ResponseEntity<String> delete(@RequestParam String path,
@@ -127,5 +128,24 @@ public class ResourceController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(info);
+    }
+
+    /**
+     * + 200 OK
+     * + 400 - невалидный или отсутствующий поисковый запрос
+     * + 401 - пользователь не авторизован
+     * + 500 - неизвестная ошибка
+     */
+    // /search?query=$query
+    @GetMapping("/search")
+    public ResponseEntity<List<ResourceInfoResponseDto>> search(
+            @RequestParam String query,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        List<ResourceInfoResponseDto> searchedResources = resourceManagerService.searchResources(query, userDetails.getId());
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(searchedResources);
     }
 }

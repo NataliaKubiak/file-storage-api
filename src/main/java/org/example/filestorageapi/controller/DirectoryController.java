@@ -3,7 +3,7 @@ package org.example.filestorageapi.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.example.filestorageapi.service.MinioService;
-import org.example.filestorageapi.utils.PathAndFileValidator;
+import org.example.filestorageapi.utils.Validator;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,10 +21,7 @@ public class DirectoryController {
     //?path=$path
     @PostMapping()
     public ResponseEntity<String> createFolder(@RequestParam String path) {
-        PathAndFileValidator.validatePath(path);
-
-
-
+        Validator.validatePath(path);
 
         minioService.createFolder(path + "/");
 
