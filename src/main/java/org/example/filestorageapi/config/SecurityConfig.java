@@ -55,7 +55,7 @@ public class SecurityConfig {
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/sign-out")
                         .invalidateHttpSession(true)
-                        .deleteCookies("SESSION") // Changed from JSESSIONID to SESSION (Spring Session default)
+                        .deleteCookies("SESSION")
                         .clearAuthentication(true)
                         .logoutSuccessHandler((request, response, authentication) -> {
                             response.setStatus(HttpServletResponse.SC_NO_CONTENT);
