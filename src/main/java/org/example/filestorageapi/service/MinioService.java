@@ -225,6 +225,18 @@ public class MinioService {
         }
     }
 
+    public long getFileSize(String path) {
+        try {
+            StatObjectResponse fileInfo = statObject(path);
+
+            return fileInfo.size();
+
+        } catch (Exception e) {
+            log.error("Error getting file info: {}", e.getMessage());
+            throw new RuntimeException("Unexpected error. Could not get file info: " + path);
+        }
+    }
+
     private Iterable<Result<Item>> listAllObjectsInDir(String folderPath) {
         return minioClient.listObjects(
                 ListObjectsArgs.builder()
@@ -261,8 +273,8 @@ public class MinioService {
                         .build());
     }
 
-    private void statObject(String filePath) throws Exception {
-        minioClient.statObject(
+    private StatObjectResponse statObject(String filePath) throws Exception {
+        return minioClient.statObject(
                 StatObjectArgs.builder()
                         .bucket(bucketName)
                         .object(filePath)

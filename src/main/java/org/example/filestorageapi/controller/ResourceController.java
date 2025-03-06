@@ -68,6 +68,13 @@ public class ResourceController {
                 .body(resourceInfoList);
     }
 
+    /**
+     * + 204 No Content
+     * + 400 - невалидный или отсутствующий путь
+     * + 401 - пользователь не авторизован
+     * + 404 - ресурс не найден
+     * + 500 - неизвестная ошибка
+     */
     // path=$path
     @DeleteMapping
     public ResponseEntity<String> delete(@RequestParam String path,
@@ -78,5 +85,47 @@ public class ResourceController {
         return ResponseEntity
                 .status(HttpStatus.NO_CONTENT)
                 .build();
+    }
+
+    /**
+     * 200 OK
+     * 400 - невалидный или отсутствующий путь
+     * 401 - пользователь не авторизован
+     * 404 - ресурс не найден
+     * 409 - ресурс, лежащий по пути to уже существует
+     * 500 - неизвестная ошибка
+     */
+    // /move?from=$from&to=$to
+//    @GetMapping("/move")
+//    public ResponseEntity<ResourceInfoResponseDto> renameOrMove(
+//            @RequestParam String from,
+//            @RequestParam String to,
+//            @AuthenticationPrincipal CustomUserDetails userDetails) {
+//
+//        ResourceInfoResponseDto resourceInfoResponseDto = resourceManagerService.renameOrMove(from, to, userDetails.getId());
+//
+//        return ResponseEntity
+//                .status(HttpStatus.OK)
+//                .body(resourceInfoResponseDto);
+//    }
+
+    /**
+     * + 200 OK
+     * + 400 - невалидный или отсутствующий путь
+     * + 401 - пользователь не авторизован
+     * + 404 - ресурс не найден
+     * + 500 - неизвестная ошибка
+     */
+    // path=$path
+    @GetMapping
+    public ResponseEntity<ResourceInfoResponseDto> getInfo(
+            @RequestParam String path,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        ResourceInfoResponseDto info = resourceManagerService.getInfo(path, userDetails.getId());
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(info);
     }
 }

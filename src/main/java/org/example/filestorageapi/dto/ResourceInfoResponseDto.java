@@ -1,7 +1,10 @@
 package org.example.filestorageapi.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
 import org.example.filestorageapi.utils.ResourceType;
 
 @Getter
@@ -19,9 +22,11 @@ public class ResourceInfoResponseDto {
     private String path;
 
     @JsonProperty("name")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private String name;
 
     @JsonProperty("size")
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private long size;
 
     @JsonProperty("type")
