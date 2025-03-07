@@ -29,7 +29,7 @@ import java.util.List;
 @RequestMapping("/api/directory")
 @RequiredArgsConstructor
 @Tag(name = "Directory Management", description = "Operations for managing directories")
-@SecurityRequirement(name = "basicAuth")
+@SecurityRequirement(name = "cookieAuth")
 public class DirectoryController {
 
     private final ResourceManagerService resourceManagerService;
