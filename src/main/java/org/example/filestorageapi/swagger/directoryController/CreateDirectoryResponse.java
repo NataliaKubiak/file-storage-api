@@ -18,8 +18,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @ApiResponses({
         @ApiResponse(
-                responseCode = "200",
-                description = "OK",
+                responseCode = "201",
+                description = "CREATED",
                 content = @Content(
                         mediaType = MediaType.APPLICATION_JSON_VALUE,
                         array = @ArraySchema(schema = @Schema(implementation = ResourceInfoResponseDto.class)),
