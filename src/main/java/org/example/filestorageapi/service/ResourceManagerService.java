@@ -5,9 +5,9 @@ import org.example.filestorageapi.dto.ResourceInfoResponseDto;
 import org.example.filestorageapi.dto.ResourceStreamResponseDto;
 import org.example.filestorageapi.errors.ResourceAlreadyExistsException;
 import org.example.filestorageapi.errors.ResourceNotFoundException;
-import org.example.filestorageapi.utils.Validator;
 import org.example.filestorageapi.utils.PathUtils;
 import org.example.filestorageapi.utils.ResourceType;
+import org.example.filestorageapi.utils.Validator;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,22 +22,22 @@ public class ResourceManagerService {
 
     public ResourceStreamResponseDto downloadResourceAsStream(String path, int userId) {
         Validator.validatePath(path);
-        String fullPath = PathUtils.getFullPathWithUserDir(path, userId);
+//        String fullPath = PathUtils.getPathWithUserDir(path, userId);
 
-        boolean isFolder = minioService.isFolderOrThrowNotFound(fullPath);
+        boolean isFolder = minioService.isFolderOrThrowNotFound(path);
 
-        String filename = PathUtils.extractFilenameFromPath(fullPath);
+        String filename = PathUtils.extractFilenameFromPath(path);
         if (isFolder) {
 
             return ResourceStreamResponseDto.builder()
                     .name(PathUtils.encode(filename) + ".zip")
-                    .responseBody(minioService.downloadFolderAsZipStream(fullPath))
+                    .responseBody(minioService.downloadFolderAsZipStream(path))
                     .build();
 
         } else {
             return ResourceStreamResponseDto.builder()
-                    .name(PathUtils.extractFilenameFromPath(PathUtils.encode(filename)))
-                    .responseBody(minioService.downloadFileAsStream(fullPath))
+                    .name(PathUtils.encode(filename))
+                    .responseBody(minioService.downloadFileAsStream(path))
                     .build();
         }
     }
@@ -46,23 +46,16 @@ public class ResourceManagerService {
         Validator.validatePath(path);
         Validator.validateFiles(files);
 
-        String fullPath = PathUtils.getFullPathWithUserDir(path, userId);
-        fullPath = PathUtils.addSlashToTheEnd(fullPath);
+        String fullPath = PathUtils.getPathWithUserDir(path, userId);
 
-        List<String> pathsToAllFolders = PathUtils.getPathsForAllFolders(fullPath);
-
-        for (String folderPath : pathsToAllFolders) {
-            if (!minioService.isFolderExists(folderPath)) {
-                throw new ResourceNotFoundException("Folder not found: " + folderPath);
-            }
-        }
+        checkAllFoldersExist(fullPath);
 
         List<ResourceInfoResponseDto> resourceInfoList = new ArrayList<>();
         for (MultipartFile file : files) {
             String fixedFilename = file.getOriginalFilename().replace(":", "/");
 
             String fullFilename = fullPath + fixedFilename;
-            String filePath = PathUtils.getPathForFile(fullFilename);
+            String filePath = PathUtils.getParentDirectoryPath(fullFilename);
             String fileName = PathUtils.extractFilenameFromPath(fullFilename);
 
             if (minioService.isFileExist(fullFilename)) {
@@ -78,7 +71,8 @@ public class ResourceManagerService {
 
     public void delete(String path, int userId) {
         Validator.validatePath(path);
-        String fullPath = PathUtils.getFullPathWithUserDir(path, userId);
+//        String fullPath = PathUtils.getPathWithUserDir(path, userId);
+        String fullPath = path;
 
         boolean isFolder = minioService.isFolderOrThrowNotFound(fullPath);
 
@@ -124,37 +118,86 @@ public class ResourceManagerService {
     public ResourceInfoResponseDto getInfo(String path, int userId) {
         Validator.validatePath(path);
 
-        String fullPath = PathUtils.getFullPathWithUserDir(path, userId);
+//        String fullPath = PathUtils.getPathWithUserDir(path, userId);
+        String fullPath = path;
 
         boolean isFolder = minioService.isFolderOrThrowNotFound(fullPath);
 
         if (isFolder) {
-            return ResourceInfoResponseDto.builder()
-                    .path(path)
-                    // TODO: 06/03/2025 какое имя показывается если папка?
-//                .name()
-                    .type(ResourceType.DIRECTORY)
-                    .build();
+            return getFolderInfo(fullPath);
 
         } else {
-            String filePath = PathUtils.getPathForFile(path);
-            String fileName = PathUtils.extractFilenameFromPath(path);
-
-            long fileSize = minioService.getFileSize(fullPath);
-
-            return ResourceInfoResponseDto.builder()
-                    .path(filePath)
-                    .name(fileName)
-                    .size(fileSize)
-                    .type(ResourceType.FILE)
-                    .build();
+            return getFileInfo(fullPath);
         }
+    }
+
+    public List<ResourceInfoResponseDto> getInfoList(String path, int userId) {
+        Validator.validatePath(path);
+
+        String fullPath = PathUtils.getPathWithUserDir(path, userId);
+
+        checkAllFoldersExist(fullPath);
+
+        return minioService.getInfoList(fullPath);
+    }
+
+    public ResourceInfoResponseDto createFolder(String path, int userId) {
+        Validator.validatePath(path);
+
+        String fullPath = PathUtils.getPathWithUserDir(path, userId);
+
+        minioService.createFolder(fullPath);
+
+        String name = PathUtils.getObjectName(fullPath, true);
+        String pathToParentDir = PathUtils.getParentDirectoryPath(fullPath);
+
+        return ResourceInfoResponseDto.builder()
+                .path(pathToParentDir)
+                .name(name)
+                .type(ResourceType.DIRECTORY)
+                .build();
     }
 
     public List<ResourceInfoResponseDto> searchResources(String searchWord, int userId) {
         Validator.validateQuery(searchWord);
 
-        String userFolderPath = PathUtils.getFullPathWithUserDir("", userId);
+        String userFolderPath = PathUtils.getPathWithUserDir("", userId);
+
         return minioService.searchByName(searchWord, userFolderPath);
+    }
+
+    private void checkAllFoldersExist(String fullPath) {
+        List<String> pathsToAllFolders = PathUtils.getPathsForAllFolders(fullPath);
+
+        for (String folderPath : pathsToAllFolders) {
+            if (!minioService.isFolderExists(folderPath)) {
+                throw new ResourceNotFoundException("Folder not found: " + folderPath);
+            }
+        }
+    }
+
+    private ResourceInfoResponseDto getFileInfo(String fullPath) {
+        String name = PathUtils.getObjectName(fullPath, false);
+        String pathToParentDir = PathUtils.getParentDirectoryPath(fullPath);
+
+        long fileSize = minioService.getFileSize(fullPath);
+
+        return ResourceInfoResponseDto.builder()
+                .path(pathToParentDir)
+                .name(name)
+                .size(fileSize)
+                .type(ResourceType.FILE)
+                .build();
+    }
+
+    private ResourceInfoResponseDto getFolderInfo(String fullPath) {
+        String name = PathUtils.getObjectName(fullPath, true);
+        String pathToParentDir = PathUtils.getParentDirectoryPath(fullPath);
+
+        return ResourceInfoResponseDto.builder()
+                .path(pathToParentDir)
+                .name(name)
+                .type(ResourceType.DIRECTORY)
+                .build();
     }
 }

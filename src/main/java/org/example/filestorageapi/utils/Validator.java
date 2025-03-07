@@ -11,7 +11,7 @@ import java.util.List;
 public class Validator {
 
     public static void validatePath(String path) {
-        if (path == null || path.isEmpty()) {
+        if (path == null) {
             throw new InvalidPathException("Path cannot be empty");
         }
 

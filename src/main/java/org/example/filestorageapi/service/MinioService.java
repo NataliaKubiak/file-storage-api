@@ -32,17 +32,7 @@ public class MinioService {
     @Value("${minio.bucketName}")
     private String bucketName;
 
-    public void createFolder(String folderPath) {
-        try {
-            folderPath = PathUtils.addSlashToTheEnd(folderPath);
-
-            putObject(folderPath, new ByteArrayInputStream(new byte[0]), 0, "application/x-directory");
-
-        } catch (Exception e) {
-            log.error("Error creating folder: {}", e.getMessage());
-            throw new RuntimeException("Could not create folder");
-        }
-    }
+    private static final int DEFAULT_BUFFER_SIZE = 8192;
 
     @PostConstruct
     public void init() {
@@ -58,9 +48,8 @@ public class MinioService {
             } else {
                 log.debug("Bucket '{}' already exists", bucketName);
             }
-
         } catch (Exception e) {
-            log.error("Error initializing MinIO: {}", e.getMessage());
+            log.error("Error initializing MinIO: {}", e.getMessage(), e);
             throw new RuntimeException("Could not initialize MinIO", e);
         }
     }
@@ -76,18 +65,20 @@ public class MinioService {
         } else {
             try {
                 String filePath = PathUtils.removeSlashFromTheEnd(path);
-
                 statObject(filePath);
-                return false;
 
+                return false;
             } catch (ErrorResponseException e) {
                 if (e.errorResponse().code().equals("NoSuchKey")) {
+                    log.warn("File or directory '{}' does not exist", path);
                     throw new ResourceNotFoundException("File or Directory doesn't exist: " + path);
                 }
 
-                throw new RuntimeException("Unexpected error while accessing MinIO");
+                log.error("Unexpected error while accessing MinIO: {}", e.getMessage(), e);
+                throw new RuntimeException("Unexpected error while accessing MinIO", e);
             } catch (Exception e) {
-                throw new RuntimeException("Unexpected error while accessing MinIO");
+                log.error("Unexpected error while accessing MinIO: {}", e.getMessage(), e);
+                throw new RuntimeException("Unexpected error while accessing MinIO", e);
             }
         }
     }
@@ -100,68 +91,32 @@ public class MinioService {
     }
 
     public boolean isFileExist(String filePath) {
-        // TODO: 06/03/2025 надо ли нам тут удалять слеш в конце или мы уверены что слеша не будет?
-        String normalizedPath = PathUtils.removeSlashFromTheEnd(filePath);
-
         try {
-            statObject(normalizedPath);
-
+            statObject(filePath);
             return true;
+
         } catch (ErrorResponseException e) {
             if (e.errorResponse().code().equals("NoSuchKey")) {
+
                 return false;
             }
-            throw new RuntimeException("Error checking if file exists");
-
+            log.error("Error checking if file exists: {}", e.getMessage(), e);
+            throw new RuntimeException("Error checking if file exists", e);
         } catch (Exception e) {
-            throw new RuntimeException("Error checking if file exists");
+            log.error("Error checking if file exists: {}", e.getMessage(), e);
+            throw new RuntimeException("Error checking if file exists", e);
         }
     }
 
-
     public StreamingResponseBody downloadFolderAsZipStream(String folderPath) {
-        folderPath = PathUtils.addSlashToTheEnd(folderPath);
-
-        final String finalFolderPath = folderPath;
+        String normalizedPath = PathUtils.addSlashToTheEnd(folderPath);
 
         return outputStream -> {
             try (ZipOutputStream zipOut = new ZipOutputStream(outputStream)) {
-                Iterable<Result<Item>> results = listAllObjectsInDir(finalFolderPath);
+                addFolderContentsToZip(normalizedPath, zipOut);
 
-                for (Result<Item> result : results) {
-                    Item item;
-                    try {
-                        item = result.get();
-                    } catch (Exception e) {
-                        continue;
-                    }
-
-                    String objectName = item.objectName();
-                    if (objectName.endsWith("/")) {
-                        continue;
-                    }
-
-                    String entryName = objectName.substring(finalFolderPath.length());
-
-                    try {
-                        zipOut.putNextEntry(new ZipEntry(entryName));
-
-                        InputStream objectStream = getObject(objectName);
-
-                        byte[] buffer = new byte[8192];
-                        int bytesRead;
-                        while ((bytesRead = objectStream.read(buffer)) != -1) {
-                            zipOut.write(buffer, 0, bytesRead);
-                        }
-
-                        zipOut.closeEntry();
-                        objectStream.close();
-                    } catch (Exception e) {
-                        log.error("Error adding file to ZIP: {}", objectName, e);
-                    }
-                }
             } catch (Exception e) {
-                log.error("Failed to create ZIP stream: {}", e.getMessage(), e);
+                log.error("Failed to create ZIP stream for folder {}: {}", normalizedPath, e.getMessage(), e);
                 throw new RuntimeException("Failed to generate ZIP archive");
             }
         };
@@ -188,7 +143,7 @@ public class MinioService {
         try {
             putObject(path + fileName, file.getInputStream(), file.getSize(), file.getContentType());
 
-            // TODO: 06/03/2025 это можно вынести в ResourceManagerService
+            log.info("File '{}' uploaded to: {}", fileName, path);
             return ResourceInfoResponseDto.builder()
                     .path(path)
                     .name(fileName)
@@ -204,10 +159,11 @@ public class MinioService {
     public void deleteFile(String path) {
         try {
             removeObject(path);
+            log.info("File '{}' deleted successfully", path);
 
         } catch (Exception e) {
-            log.error("Error deleting file: {}", e.getMessage());
-            throw new RuntimeException("Unexpected error. Could not delete file: " + path);
+            log.error("Error deleting file '{}': {}", path, e.getMessage(), e);
+            throw new RuntimeException("Unexpected error. Could not delete file: " + path, e);
         }
     }
 
@@ -215,14 +171,15 @@ public class MinioService {
         String normalizedPath = PathUtils.addSlashToTheEnd(folderPath);
 
         try {
-            Iterable<Result<Item>> objects = listAllObjectsInDir(normalizedPath);
-
+            Iterable<Result<Item>> objects = listAllObjectsInDir(normalizedPath, true);
             for (Result<Item> result : objects) {
                 removeObject(result.get().objectName());
             }
+            log.info("Folder '{}' deleted successfully", folderPath);
+
         } catch (Exception e) {
-            log.error("Error deleting folder: {}", e.getMessage());
-            throw new RuntimeException("Unexpected error. Could not delete folder: " + folderPath);
+            log.error("Error deleting folder '{}': {}", folderPath, e.getMessage(), e);
+            throw new RuntimeException("Unexpected error. Could not delete folder: " + folderPath, e);
         }
     }
 
@@ -240,48 +197,139 @@ public class MinioService {
 
     public List<ResourceInfoResponseDto> searchByName(String searchWord, String userFolder) {
         List<ResourceInfoResponseDto> matchingItems = new ArrayList<>();
+        log.info("Searching for '{}' in folder: {}", searchWord, userFolder);
 
         try {
-            Iterable<Result<Item>> results = listAllObjectsInDir(userFolder);
+            Iterable<Result<Item>> results = listAllObjectsInDir(userFolder, true);
+            int processedItems = 0;
+            String lowerCaseSearchWord = searchWord.toLowerCase();
 
             for (Result<Item> result : results) {
-                Item item = result.get();
-                String objectFullName = item.objectName();
+                try {
+                    Item item = result.get();
+                    processedItems++;
 
-                boolean isFolder = PathUtils.hasSlashInTheEnd(objectFullName);
+                    String objectName = PathUtils.getObjectName(
+                            item.objectName(),
+                            PathUtils.hasSlashInTheEnd(item.objectName())
+                    );
 
-                // TODO: 06/03/2025 для папок path = "user-5-files/pictures/" и objectName = "pictures"
-                //или path = "user-5-files/pictures2/" и objectName = "pictures2"
-                //понять как должны отображаться имена и пути для папок и исправить
-                String path = PathUtils.getPathForFile(objectFullName);
-                String objectName = PathUtils.extractFilenameFromPath(objectFullName);
+                    if (objectName.toLowerCase().contains(lowerCaseSearchWord)) {
+                        ResourceInfoResponseDto itemInfo = createResourceInfoDto(item);
+                        matchingItems.add(itemInfo);
+                    }
 
-                if (objectName.toLowerCase().contains(searchWord.toLowerCase())) {
-
-                    ResourceInfoResponseDto itemInfo = ResourceInfoResponseDto.builder()
-                            .path(path)
-                            .name(objectName)
-                            .size(isFolder ? 0 : item.size())
-                            .type(isFolder ? ResourceType.DIRECTORY : ResourceType.FILE)
-                            .build();
-
-                    matchingItems.add(itemInfo);
+                } catch (Exception e) {
+                    log.warn("Skipping unreadable item during search in {}: {}", userFolder, e.getMessage());
                 }
             }
+
+            log.info("Found {} matches for '{}' in folder {} (searched through {} items)",
+                    matchingItems.size(), searchWord, userFolder, processedItems);
         } catch (Exception e) {
-            log.error("Error searching for items in MinIO: {}", e.getMessage());
+            log.error("Error searching for '{}' in folder {}: {}", searchWord, userFolder, e.getMessage(), e);
             throw new RuntimeException("Error searching for items in MinIO");
         }
 
         return matchingItems;
     }
 
-    private Iterable<Result<Item>> listAllObjectsInDir(String folderPath) {
+    public List<ResourceInfoResponseDto> getInfoList(String fullPath) {
+        List<ResourceInfoResponseDto> infoList = new ArrayList<>();
+
+        try {
+            Iterable<Result<Item>> results = listAllObjectsInDir(fullPath, false);
+            int itemCount = 0;
+
+            for (Result<Item> result : results) {
+                try {
+                    Item item = result.get();
+                    ResourceInfoResponseDto itemInfo = createResourceInfoDto(item);
+
+                    infoList.add(itemInfo);
+                    itemCount++;
+                } catch (Exception e) {
+                    log.warn("Skipping unreadable item in directory {}: {}", fullPath, e.getMessage());
+                }
+            }
+
+            log.info("Retrieved {} items from path {}", itemCount, fullPath);
+        } catch (Exception e) {
+            log.error("Error getting info for items in path {}: {}", fullPath, e.getMessage(), e);
+            throw new RuntimeException("Error getting info for items in MinIO");
+        }
+
+        return infoList;
+    }
+
+    public void createFolder(String folderPath) {
+        try {
+            putObject(folderPath, new ByteArrayInputStream(new byte[0]), 0, "application/x-directory");
+
+            log.info("Folder '{}' created", folderPath);
+        } catch (Exception e) {
+            log.error("Error creating folder: {}", e.getMessage());
+            throw new RuntimeException("Could not create folder");
+        }
+    }
+
+    private ResourceInfoResponseDto createResourceInfoDto(Item item) {
+        String objectFullName = item.objectName();
+        boolean isFolder = PathUtils.hasSlashInTheEnd(objectFullName);
+
+        String path = PathUtils.getParentDirectoryPath(objectFullName);
+        String objectName = PathUtils.getObjectName(objectFullName, isFolder);
+
+        return ResourceInfoResponseDto.builder()
+                .path(path)
+                .name(objectName)
+                .size(isFolder ? 0 : item.size())
+                .type(isFolder ? ResourceType.DIRECTORY : ResourceType.FILE)
+                .build();
+    }
+
+    private void addFolderContentsToZip(String folderPath, ZipOutputStream zipOut) throws Exception {
+        Iterable<Result<Item>> results = listAllObjectsInDir(folderPath, true);
+
+        for (Result<Item> result : results) {
+            Item item;
+            try {
+                item = result.get();
+            } catch (Exception e) {
+                log.warn("Skipping unreadable item in folder {}", folderPath, e);
+                continue;
+            }
+
+            String objectName = item.objectName();
+            if (objectName.endsWith("/")) {
+                continue;
+            }
+
+            String entryName = objectName.substring(folderPath.length());
+            try {
+                zipOut.putNextEntry(new ZipEntry(entryName));
+
+                try (InputStream objectStream = getObject(objectName)) {
+                    byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
+                    int bytesRead;
+                    while ((bytesRead = objectStream.read(buffer)) != -1) {
+                        zipOut.write(buffer, 0, bytesRead);
+                    }
+                }
+
+                zipOut.closeEntry();
+            } catch (Exception e) {
+                log.error("Error adding file {} to ZIP", objectName, e);
+            }
+        }
+    }
+
+    private Iterable<Result<Item>> listAllObjectsInDir(String folderPath, boolean isRecursive) {
         return minioClient.listObjects(
                 ListObjectsArgs.builder()
                         .bucket(bucketName)
                         .prefix(folderPath)
-                        .recursive(true)
+                        .recursive(isRecursive)
                         .build());
     }
 

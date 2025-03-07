@@ -39,6 +39,8 @@ public class ResourceController {
             @RequestParam String path,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
+        // TODO: 07/03/2025 тут сразу приходит с user-X-files, путь до объекта который нажали скачать = "user-14-files/front/inside of front/test (1).txt"
+        //закомментила в downloadResourceAsStream добавление user-X-files
         ResourceStreamResponseDto streamResponseDto = resourceManagerService.downloadResourceAsStream(path, userDetails.getId());
 
         return ResponseEntity.ok()
@@ -57,10 +59,13 @@ public class ResourceController {
     // path=$path
     @PostMapping()
     public ResponseEntity<List<ResourceInfoResponseDto>> uploadFiles(
-            @RequestParam("file") List<MultipartFile> files,
+            // TODO: 07/03/2025 тут вместо "file" как в задании - "object" приходит с фронта
+            @RequestParam("object") List<MultipartFile> files,
             @RequestParam String path,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
+        // TODO: 07/03/2025 путь без user-X-folder. загрузка из папки front, путь = "front/"
+        //добавляю к пути user-X-files/ в последующей логике
         List<ResourceInfoResponseDto> resourceInfoList = resourceManagerService.uploadResources(files, path, userDetails.getId());
 
         return ResponseEntity
@@ -75,12 +80,14 @@ public class ResourceController {
      * + 404 - ресурс не найден
      * + 500 - неизвестная ошибка
      */
-    // TODO: 06/03/2025 ResponseEntity<String> - там точно String внутри должен быть?
     // path=$path
     @DeleteMapping
-    public ResponseEntity<String> delete(@RequestParam String path,
-                                         @AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<Void> delete(
+            @RequestParam String path,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
+        // TODO: 07/03/2025 тут сразу приходит с user-X-files, путь до объекта который нажали удалить = "user-14-files/front/inside of front/test.txt"
+        //закомментила в delete добавление user-X-files
         resourceManagerService.delete(path, userDetails.getId());
 
         return ResponseEntity
@@ -142,6 +149,8 @@ public class ResourceController {
             @RequestParam String query,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
+        // TODO: 07/03/2025 поисковый запрос "front", query = "front"
+        // добавляю к пути user-X-files чтобы искать только среди объектов этого юзера
         List<ResourceInfoResponseDto> searchedResources = resourceManagerService.searchResources(query, userDetails.getId());
 
         return ResponseEntity
