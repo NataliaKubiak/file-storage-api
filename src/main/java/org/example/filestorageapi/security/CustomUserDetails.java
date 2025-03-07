@@ -1,5 +1,6 @@
 package org.example.filestorageapi.security;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.example.filestorageapi.entity.User;
@@ -9,19 +10,23 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.io.Serializable;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
-public class CustomUserDetails implements UserDetails, CredentialsContainer {
+public class CustomUserDetails implements UserDetails, CredentialsContainer, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     @Getter
     private final int id;
 
     private final String username;
 
+    @JsonIgnore
     private String password;
 
     private final Set<Roles> roles;
@@ -30,7 +35,7 @@ public class CustomUserDetails implements UserDetails, CredentialsContainer {
         this.id = user.getId();
         this.username = user.getUsername();
         this.password = user.getEncryptedPassword();
-        this.roles = Collections.singleton(user.getRoles());
+        this.roles = new HashSet<>(user.getRoles().ordinal());
     }
 
     @Override
@@ -44,6 +49,7 @@ public class CustomUserDetails implements UserDetails, CredentialsContainer {
     }
 
     @Override
+    @JsonIgnore
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return this.roles.stream()
                 .map(role -> new SimpleGrantedAuthority(role.name()))
