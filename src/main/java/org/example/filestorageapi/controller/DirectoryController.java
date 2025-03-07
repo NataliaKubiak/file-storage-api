@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.example.filestorageapi.dto.ResourceInfoResponseDto;
+import org.example.filestorageapi.errors.ExceptionUtils;
 import org.example.filestorageapi.security.CustomUserDetails;
 import org.example.filestorageapi.service.ResourceManagerService;
 import org.example.filestorageapi.swagger.CommonApiResponses;
@@ -44,6 +45,8 @@ public class DirectoryController {
             @Parameter(description = "Directory path", required = true) @RequestParam String path,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
+        ExceptionUtils.ifSessionExpiredThrowException(userDetails);
+
         // TODO: 07/03/2025 тут приходит "" из папки юзера и "front/" (те без user-X-files)
         //добавляю к пути user-X-files/ в последующей логике
         List<ResourceInfoResponseDto> infoList = resourceManagerService.getInfoList(path, userDetails.getId());
@@ -63,6 +66,8 @@ public class DirectoryController {
     public ResponseEntity<ResourceInfoResponseDto> createFolder(
             @Parameter(description = "Folder path", required = true) @RequestParam String path,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        ExceptionUtils.ifSessionExpiredThrowException(userDetails);
 
         // TODO: 07/03/2025 тут приходит без user-X-files и с / в конце
         //добавляю к пути user-X-files/ в последующей логике

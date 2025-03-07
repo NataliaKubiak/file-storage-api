@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.example.filestorageapi.dto.ResourceInfoResponseDto;
 import org.example.filestorageapi.dto.ResourceStreamResponseDto;
+import org.example.filestorageapi.errors.ExceptionUtils;
 import org.example.filestorageapi.security.CustomUserDetails;
 import org.example.filestorageapi.service.ResourceManagerService;
 import org.springframework.http.HttpHeaders;
@@ -36,8 +37,7 @@ public class ResourceController {
     // /download?path=$path
     @GetMapping("/download")
     public ResponseEntity<StreamingResponseBody> downloadObject(
-            @RequestParam String path,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @RequestParam String path) {
 
         // TODO: 07/03/2025 тут сразу приходит с user-X-files, путь до объекта который нажали скачать = "user-14-files/front/inside of front/test (1).txt"
         //закомментила в downloadResourceAsStream добавление user-X-files
@@ -64,6 +64,8 @@ public class ResourceController {
             @RequestParam String path,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
+        ExceptionUtils.ifSessionExpiredThrowException(userDetails);
+
         // TODO: 07/03/2025 путь без user-X-folder. загрузка из папки front, путь = "front/"
         //добавляю к пути user-X-files/ в последующей логике
         List<ResourceInfoResponseDto> resourceInfoList = resourceManagerService.uploadResources(files, path, userDetails.getId());
@@ -83,8 +85,7 @@ public class ResourceController {
     // path=$path
     @DeleteMapping
     public ResponseEntity<Void> delete(
-            @RequestParam String path,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @RequestParam String path) {
 
         // TODO: 07/03/2025 тут сразу приходит с user-X-files, путь до объекта который нажали удалить = "user-14-files/front/inside of front/test.txt"
         //закомментила в delete добавление user-X-files
@@ -127,8 +128,7 @@ public class ResourceController {
     // path=$path
     @GetMapping
     public ResponseEntity<ResourceInfoResponseDto> getInfo(
-            @RequestParam String path,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @RequestParam String path) {
 
         ResourceInfoResponseDto info = resourceManagerService.getInfo(path);
 
@@ -148,6 +148,8 @@ public class ResourceController {
     public ResponseEntity<List<ResourceInfoResponseDto>> search(
             @RequestParam String query,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        ExceptionUtils.ifSessionExpiredThrowException(userDetails);
 
         // TODO: 07/03/2025 поисковый запрос "front", query = "front"
         // добавляю к пути user-X-files чтобы искать только среди объектов этого юзера

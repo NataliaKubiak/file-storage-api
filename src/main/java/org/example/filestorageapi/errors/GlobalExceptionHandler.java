@@ -21,7 +21,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({
             UsernameNotFoundException.class,
-            AuthenticationException.class //includes BadCredentialsException
+            AuthenticationException.class, //includes BadCredentialsException
+            SessionExpiredException.class
     })
     public ResponseEntity<ErrorResponse> handleAuthenticationException(Exception ex) {
         return new ResponseEntity<>(new ErrorResponse(ex.getMessage()), HttpStatus.UNAUTHORIZED); //401
