@@ -146,6 +146,13 @@ public class ResourceManagerService {
 
         String fullPath = PathUtils.getPathWithUserDir(path, userId);
 
+        if (minioService.isFileExist(fullPath)) {
+            throw new ResourceAlreadyExistsException("Folder '" + "' already exists");
+        }
+
+        String parentDir = PathUtils.getParentDirectoryPath(fullPath);
+        checkAllFoldersExist(parentDir);
+
         minioService.createFolder(fullPath);
 
         String name = PathUtils.getObjectName(fullPath, true);
