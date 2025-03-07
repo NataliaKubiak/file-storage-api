@@ -23,7 +23,7 @@ public class SwaggerConfig {
                                 new SecurityScheme()
                                         .type(SecurityScheme.Type.APIKEY)
                                         .in(SecurityScheme.In.COOKIE)
-                                        .name("SESSION"))) // or whatever your session cookie name is
+                                        .name("SESSION")))
                 .addSecurityItem(new SecurityRequirement().addList("cookieAuth"));
     }
 }

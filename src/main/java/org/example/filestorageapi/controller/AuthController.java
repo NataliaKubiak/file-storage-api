@@ -1,5 +1,6 @@
 package org.example.filestorageapi.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -12,6 +13,9 @@ import org.example.filestorageapi.mapper.UserAuthDtoToUserMapper;
 import org.example.filestorageapi.security.CustomUserDetails;
 import org.example.filestorageapi.security.CustomUserDetailsService;
 import org.example.filestorageapi.service.UserService;
+import org.example.filestorageapi.swagger.CommonAuthResponses;
+import org.example.filestorageapi.swagger.authController.SignInResponse;
+import org.example.filestorageapi.swagger.authController.SignUpResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -44,12 +48,12 @@ public class AuthController {
     private final UserService userService;
     private final UserAuthDtoToUserMapper userMapper;
 
-    /**
-     * + 200 OK
-     * + 400 - ошибки валидации (пример - слишком короткий username)
-     * + 401 - неверные данные (такого пользователя нет, или пароль неправильный)
-     * + 500 - неизвестная ошибка
-     */
+    @Operation(
+            summary = "Sign in",
+            description = "Authenticates a user and returns user information"
+    )
+    @SignInResponse
+    @CommonAuthResponses
     @PostMapping("/sign-in")
     public ResponseEntity<UserResponseDto> signIn(@RequestBody @Valid UserAuthDto userAuthDto,
                                                   BindingResult bindingResult,
@@ -79,12 +83,12 @@ public class AuthController {
         }
     }
 
-    /**
-     * + 201 Created
-     * + 400 - ошибки валидации (пример - слишком короткий username)
-     * + 409 - username занят
-     * + 500 - неизвестная ошибка
-     */
+    @Operation(
+            summary = "Sign up",
+            description = "Registers a new user and returns user information"
+    )
+    @SignUpResponse
+    @CommonAuthResponses
     @PostMapping("/sign-up")
     public ResponseEntity<UserResponseDto> performSignup(@RequestBody @Valid UserAuthDto userAuthDto,
                                                          BindingResult bindingResult,
