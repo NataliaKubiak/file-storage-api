@@ -26,7 +26,7 @@ public class PathUtils {
         return string.endsWith("/");
     }
 
-    public static String getPathWithUserDir(String path, int userId) {
+    public static String getPathWithUserDir(String path, long userId) {
         if (path.isEmpty()) {
             return String.format("user-%d-files/", userId);
         } else {

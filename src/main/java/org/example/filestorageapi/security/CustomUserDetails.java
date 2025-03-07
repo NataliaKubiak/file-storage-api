@@ -12,7 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -22,7 +22,7 @@ public class CustomUserDetails implements UserDetails, CredentialsContainer, Ser
     private static final long serialVersionUID = 1L;
 
     @Getter
-    private final int id;
+    private final Long id;
 
     private final String username;
 
@@ -32,10 +32,10 @@ public class CustomUserDetails implements UserDetails, CredentialsContainer, Ser
     private final Set<Roles> roles;
 
     public CustomUserDetails(User user) {
-        this.id = user.getId();
+        this.id = (long) user.getId();
         this.username = user.getUsername();
         this.password = user.getEncryptedPassword();
-        this.roles = new HashSet<>(user.getRoles().ordinal());
+        this.roles = Collections.singleton(user.getRoles());
     }
 
     @Override

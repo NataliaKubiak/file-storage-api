@@ -41,6 +41,17 @@ minio:
   secretKey: minioadmin
   bucketName: user-files
 
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+#    tagsSorter: alpha
+    csrf:
+      enabled: false
+    with-credentials: true
+  api-docs:
+    path: /v3/api-docs
+
 logging:
   level:
     org.springframework.security: DEBUG

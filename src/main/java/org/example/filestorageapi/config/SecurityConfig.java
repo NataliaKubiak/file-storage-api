@@ -33,16 +33,18 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
+                .authenticationProvider(authenticationProvider())
+                .userDetailsService(customUserDetailsService)
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/api/auth/sign-in", "/api/auth/sign-up").permitAll()
                         .requestMatchers("/", "/index.html", "/*.js", "/*.css", "/assets/**").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         // This line is important - it allows the React routes to work
                         .requestMatchers("/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
-                .userDetailsService(customUserDetailsService)
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); //401
@@ -82,7 +84,6 @@ public class SecurityConfig {
         return authenticationProvider;
     }
 
-    // Updated to use DelegatingSecurityContextRepository which is more flexible
     @Bean
     public SecurityContextRepository securityContextRepository() {
         return new DelegatingSecurityContextRepository(

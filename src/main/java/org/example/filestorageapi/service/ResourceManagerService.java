@@ -20,7 +20,7 @@ public class ResourceManagerService {
 
     private final MinioService minioService;
 
-    public ResourceStreamResponseDto downloadResourceAsStream(String path, int userId) {
+    public ResourceStreamResponseDto downloadResourceAsStream(String path) {
         Validator.validatePath(path);
 //        String fullPath = PathUtils.getPathWithUserDir(path, userId);
 
@@ -42,7 +42,7 @@ public class ResourceManagerService {
         }
     }
 
-    public List<ResourceInfoResponseDto> uploadResources(List<MultipartFile> files, String path, int userId) {
+    public List<ResourceInfoResponseDto> uploadResources(List<MultipartFile> files, String path, long userId) {
         Validator.validatePath(path);
         Validator.validateFiles(files);
 
@@ -69,7 +69,7 @@ public class ResourceManagerService {
         return resourceInfoList;
     }
 
-    public void delete(String path, int userId) {
+    public void delete(String path) {
         Validator.validatePath(path);
 //        String fullPath = PathUtils.getPathWithUserDir(path, userId);
         String fullPath = path;
@@ -115,7 +115,7 @@ public class ResourceManagerService {
 //        }
 //    }
 
-    public ResourceInfoResponseDto getInfo(String path, int userId) {
+    public ResourceInfoResponseDto getInfo(String path) {
         Validator.validatePath(path);
 
 //        String fullPath = PathUtils.getPathWithUserDir(path, userId);
@@ -131,7 +131,7 @@ public class ResourceManagerService {
         }
     }
 
-    public List<ResourceInfoResponseDto> getInfoList(String path, int userId) {
+    public List<ResourceInfoResponseDto> getInfoList(String path, long userId) {
         Validator.validatePath(path);
 
         String fullPath = PathUtils.getPathWithUserDir(path, userId);
@@ -141,7 +141,7 @@ public class ResourceManagerService {
         return minioService.getInfoList(fullPath);
     }
 
-    public ResourceInfoResponseDto createFolder(String path, int userId) {
+    public ResourceInfoResponseDto createFolder(String path, long userId) {
         Validator.validatePath(path);
 
         String fullPath = PathUtils.getPathWithUserDir(path, userId);
@@ -158,7 +158,7 @@ public class ResourceManagerService {
                 .build();
     }
 
-    public List<ResourceInfoResponseDto> searchResources(String searchWord, int userId) {
+    public List<ResourceInfoResponseDto> searchResources(String searchWord, long userId) {
         Validator.validateQuery(searchWord);
 
         String userFolderPath = PathUtils.getPathWithUserDir("", userId);

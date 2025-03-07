@@ -9,6 +9,7 @@ import lombok.extern.log4j.Log4j2;
 import org.example.filestorageapi.dto.UserAuthDto;
 import org.example.filestorageapi.dto.UserResponseDto;
 import org.example.filestorageapi.mapper.UserAuthDtoToUserMapper;
+import org.example.filestorageapi.security.CustomUserDetails;
 import org.example.filestorageapi.security.CustomUserDetailsService;
 import org.example.filestorageapi.service.UserService;
 import org.springframework.http.HttpStatus;
@@ -62,6 +63,11 @@ public class AuthController {
                     userAuthDto.getPassword()
             );
             Authentication authentication = authenticationManager.authenticate(authRequest);
+
+            if (!(authentication.getPrincipal() instanceof CustomUserDetails)) {
+                log.warn("Authentication principal is not CustomUserDetails: {}",
+                        authentication.getPrincipal().getClass().getName());
+            }
 
             createAndSaveSecurityContext(request, response, authentication);
 

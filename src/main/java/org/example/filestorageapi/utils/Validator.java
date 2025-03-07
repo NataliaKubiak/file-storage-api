@@ -12,7 +12,7 @@ public class Validator {
 
     public static void validatePath(String path) {
         if (path == null) {
-            throw new InvalidPathException("Path cannot be empty");
+            throw new InvalidPathException("Path cannot be null");
         }
 
         if (path.contains("..")) {

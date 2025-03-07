@@ -41,7 +41,7 @@ public class ResourceController {
 
         // TODO: 07/03/2025 тут сразу приходит с user-X-files, путь до объекта который нажали скачать = "user-14-files/front/inside of front/test (1).txt"
         //закомментила в downloadResourceAsStream добавление user-X-files
-        ResourceStreamResponseDto streamResponseDto = resourceManagerService.downloadResourceAsStream(path, userDetails.getId());
+        ResourceStreamResponseDto streamResponseDto = resourceManagerService.downloadResourceAsStream(path);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
@@ -88,7 +88,7 @@ public class ResourceController {
 
         // TODO: 07/03/2025 тут сразу приходит с user-X-files, путь до объекта который нажали удалить = "user-14-files/front/inside of front/test.txt"
         //закомментила в delete добавление user-X-files
-        resourceManagerService.delete(path, userDetails.getId());
+        resourceManagerService.delete(path);
 
         return ResponseEntity
                 .status(HttpStatus.NO_CONTENT)
@@ -130,7 +130,7 @@ public class ResourceController {
             @RequestParam String path,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        ResourceInfoResponseDto info = resourceManagerService.getInfo(path, userDetails.getId());
+        ResourceInfoResponseDto info = resourceManagerService.getInfo(path);
 
         return ResponseEntity
                 .status(HttpStatus.OK)

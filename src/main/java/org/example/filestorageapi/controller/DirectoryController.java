@@ -1,10 +1,17 @@
 package org.example.filestorageapi.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.example.filestorageapi.dto.ResourceInfoResponseDto;
 import org.example.filestorageapi.security.CustomUserDetails;
 import org.example.filestorageapi.service.ResourceManagerService;
+import org.example.filestorageapi.swagger.CommonApiResponses;
+import org.example.filestorageapi.swagger.directoryController.CreateDirectoryResponse;
+import org.example.filestorageapi.swagger.directoryController.DirectoryInfoResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,21 +27,21 @@ import java.util.List;
 @Controller
 @RequestMapping("/api/directory")
 @RequiredArgsConstructor
+@Tag(name = "Directory Management", description = "Operations for managing directories")
+@SecurityRequirement(name = "basicAuth")
 public class DirectoryController {
 
     private final ResourceManagerService resourceManagerService;
 
-    /**
-     * 200 OK
-     * 400 - невалидный или отсутствующий путь
-     * 401 - пользователь не авторизован
-     * 404 - папка не существует
-     * 500 - неизвестная ошибка
-     */
-//     path=$path
+    @Operation(
+            summary = "Get directory information",
+            description = "Returns information about all resources in the specified directory"
+    )
+    @DirectoryInfoResponse
+    @CommonApiResponses
     @GetMapping
     public ResponseEntity<List<ResourceInfoResponseDto>> getInfo(
-            @RequestParam String path,
+            @Parameter(description = "Directory path", required = true) @RequestParam String path,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         // TODO: 07/03/2025 тут приходит "" из папки юзера и "front/" (те без user-X-files)
@@ -46,10 +53,15 @@ public class DirectoryController {
                 .body(infoList);
     }
 
-    //?path=$path
+    @Operation(
+            summary = "Create new folder",
+            description = "Creates a new folder at the specified path"
+    )
+    @CreateDirectoryResponse
+    @CommonApiResponses
     @PostMapping()
     public ResponseEntity<ResourceInfoResponseDto> createFolder(
-            @RequestParam String path,
+            @Parameter(description = "Folder path", required = true) @RequestParam String path,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         // TODO: 07/03/2025 тут приходит без user-X-files и с / в конце
